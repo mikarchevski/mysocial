@@ -11,7 +11,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "sass": "sass public/scss/style.scss public/css/style.css",
-    "sass:watch": "sass --watch public/scss/style.scss public/css/style.css"
+    "sass:watch": "sass --watch public/scss/main.scss public/css/style.css"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

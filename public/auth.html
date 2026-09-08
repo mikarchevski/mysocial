@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация | MySocial</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Табы для переключения -->
+            <div class="auth-tabs">
+                <button class="auth-tab auth-tab--active" data-tab="login">Вход</button>
+                <button class="auth-tab" data-tab="register">Регистрация</button>
+            </div>
+
+            <!-- Форма входа -->
+            <div class="auth-form-wrapper auth-form-wrapper--active" id="loginFormWrapper">
+                <h1 class="auth-card__title">Вход в MySocial</h1>
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginEmail" class="form-label">Email</label>
+                        <input type="email" id="loginEmail" name="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword" class="form-label">Пароль</label>
+                        <input type="password" id="loginPassword" name="password" class="form-input" required>
+                    </div>
+                    <div class="form-group form-group--checkbox">
+                        <input type="checkbox" id="rememberMe" name="rememberMe" class="form-checkbox">
+                        <label for="rememberMe" class="form-label--inline">Запомнить меня</label>
+                    </div>
+                    <div id="loginError" class="form-error"></div>
+                    <button type="submit" class="form-button">Войти</button>
+                </form>
+            </div>
+
+            <!-- Форма регистрации -->
+            <div class="auth-form-wrapper" id="registerFormWrapper">
+                <h1 class="auth-card__title">Регистрация в MySocial</h1>
+                <form id="registerForm" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName" class="form-label">Имя *</label>
+                            <input type="text" id="firstName" name="firstName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName" class="form-label">Фамилия *</label>
+                            <input type="text" id="lastName" name="lastName" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dateOfBirth" class="form-label">Дата рождения *</label>
+                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="city" class="form-label">Город</label>
+                        <input type="text" id="city" name="city" class="form-input" placeholder="Необязательно">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail" class="form-label">Email *</label>
+                        <input type="email" id="registerEmail" name="email" class="form-input" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="registerPassword" class="form-label">Пароль *</label>
+                            <input type="password" id="registerPassword" name="password" class="form-input" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword" class="form-label">Повторите пароль *</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required minlength="6">
+                        </div>
+                    </div>
+                    <div id="registerError" class="form-error"></div>
+                    <button type="submit" class="form-button">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="/js/auth.js"></script>
+</body>
+</html>

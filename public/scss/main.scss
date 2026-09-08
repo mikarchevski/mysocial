@@ -11,5 +11,8 @@
 @use 'components/layout';
 @use 'components/profile';
 
+// Pages
+@use 'pages/auth';
+
 // Responsive
 @use 'responsive/mobile';

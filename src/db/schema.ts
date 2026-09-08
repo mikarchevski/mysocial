@@ -1,11 +1,14 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, date } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
-  username: varchar('username', { length: 50 }).unique().notNull(),
+  firstName: varchar('first_name', { length: 50 }).notNull(),
+  lastName: varchar('last_name', { length: 50 }).notNull(),
   email: varchar('email', { length: 255 }).unique().notNull(),
   passwordHash: text('password_hash').notNull(),
-  publicKey: text('public_key').notNull(), // Публичный ключ для E2EE
+  dateOfBirth: date('date_of_birth').notNull(),
+  city: varchar('city', { length: 100 }), // Опционально
+  publicKey: text('public_key'), // Для E2EE (пока опционально)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

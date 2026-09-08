@@ -1,0 +1,200 @@
+@use '../../scss/variables' as *;
+@use 'sass:color';
+
+.auth-page {
+  background: $bg-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid $border-color;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &--active {
+    color: $primary-color;
+    font-weight: 600;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: $primary-color;
+    }
+  }
+}
+
+// Обертки для форм
+.auth-form-wrapper {
+  display: none;
+
+  &--active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 32px;
+
+  &__title {
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 24px;
+    color: $text-color;
+  }
+
+  &__footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: $text-secondary;
+  }
+}
+
+.auth-link {
+  color: $link-color;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .form-group {
+    flex: 1;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-color;
+
+  &--inline {
+    font-size: 14px;
+    color: $text-secondary;
+    cursor: pointer;
+  }
+}
+
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba(74, 118, 168, 0.15);
+  }
+}
+
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: $primary-color;
+}
+
+.form-button {
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+
+  &:hover {
+    background: color.adjust($primary-color, $lightness: -8%);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.form-error {
+  color: #e64646;
+  font-size: 14px;
+  text-align: center;
+  display: none;
+  background: #ffe6e6;
+  padding: 8px;
+  border-radius: 4px;
+}

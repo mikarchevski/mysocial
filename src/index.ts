@@ -36,13 +36,25 @@ await app.register(jwt, {
   secret: env.JWT_SECRET,
 });
 
+// Добавляем декоратор для аутентификации
+app.decorate("authenticate", async function (request, reply) {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.send(err);
+  }
+});
+
 await app.register(cookie);
 await app.register(websocket);
 
 // Роуты
 await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(messageRoutes, { prefix: '/api/messages' });
-
+// Роуты для красивых URL без .html
+app.get('/auth', async (request, reply) => {
+  return reply.sendFile('auth.html');
+});
 // WebSocket
 app.register(async function (fastify) {
   fastify.get('/ws', { websocket: true }, websocketHandler);
