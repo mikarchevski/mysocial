@@ -1,0 +1,23 @@
+// Responsive
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+    }
+    
+    .profile-info-section {
+        &__header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        &__img {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+    }
+}

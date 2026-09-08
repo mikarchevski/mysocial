@@ -1,0 +1,247 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: #edeef0;
+  color: #000;
+  line-height: 1.5;
+}
+
+.header {
+  background: #4a76a8;
+  color: white;
+  padding: 10px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.header__content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.header__logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+.header__user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.header__logout-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.header__logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+}
+
+.menu {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+.menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.menu__item {
+  margin: 0;
+  padding: 0;
+}
+.menu__link {
+  display: block;
+  padding: 12px 20px;
+  color: #2a5885;
+  text-decoration: none;
+  border-bottom: 1px solid #e7e8ec;
+  transition: background 0.2s;
+}
+.menu__link:hover {
+  background: #f5f6f8;
+}
+.menu__link--active {
+  background: #5181b8;
+  color: white;
+}
+.menu__link:last-child {
+  border-bottom: none;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-card {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+}
+
+.avatar-section {
+  width: 300px;
+  flex-shrink: 0;
+  padding: 20px;
+  border-right: 1px solid #e7e8ec;
+  background: #f8f9fa;
+}
+.avatar-section__container {
+  position: relative;
+  margin-bottom: 20px;
+}
+.avatar-section__img {
+  width: 200px;
+  height: 200px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto;
+}
+.avatar-section__btn-change {
+  display: block;
+  margin: 10px auto 0;
+  background: #4a76a8;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.avatar-section__btn-change:hover {
+  background: #3a6698;
+}
+.avatar-section__data {
+  margin-top: 20px;
+}
+
+.profile-info-section {
+  flex: 1;
+  min-width: 0;
+}
+.profile-info-section__header {
+  padding: 20px;
+  border-bottom: 1px solid #e7e8ec;
+}
+.profile-info-section__info {
+  flex: 1;
+}
+.profile-info-section__name {
+  font-size: 24px;
+  color: #000;
+  margin-bottom: 5px;
+}
+.profile-info-section__status {
+  color: #939393;
+  font-size: 14px;
+}
+.profile-info-section__details {
+  padding: 20px;
+}
+
+.info-block {
+  margin-bottom: 25px;
+}
+.info-block__title {
+  background: #f0f2f5;
+  padding: 10px 15px;
+  margin: 0 -20px 15px;
+  font-size: 14px;
+  color: #2a5885;
+  text-transform: uppercase;
+}
+.info-block__row {
+  display: flex;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+.info-block__row:last-child {
+  border-bottom: none;
+}
+.info-block__label {
+  width: 150px;
+  color: #939393;
+  flex-shrink: 0;
+}
+.info-block__value {
+  flex: 1;
+  color: #000;
+}
+.info-block__achievements-list {
+  padding: 10px 0;
+}
+.info-block__achievement-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+}
+.info-block__achievement-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+.info-block__achievement-text {
+  font-size: 13px;
+  color: #2a5885;
+}
+
+@media (max-width: 768px) {
+  .profile-card {
+    flex-direction: column;
+  }
+  .avatar-section {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e7e8ec;
+  }
+  .avatar-section__img {
+    width: 150px;
+    height: 150px;
+  }
+}
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+  }
+  .profile-info-section__header {
+    flex-direction: column;
+    text-align: center;
+  }
+  .profile-info-section__img {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+  }
+}
+
+/*# sourceMappingURL=style.css.map */

@@ -3,7 +3,7 @@ import { WebSocket } from 'ws';
 export async function websocketHandler(socket: WebSocket, request: any) {
   console.log('WebSocket client connected');
   
-  socket.on('message', async (data) => {
+  socket.on('message', async (data: any) => {
     const message = data.toString();
     console.log('Received:', message);
     

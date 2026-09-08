@@ -1,0 +1,15 @@
+// Используем новую систему модулей (@use)
+@use 'variables' as *;
+@use 'mixins' as *;
+
+// Base styles
+@use 'base/reset';
+@use 'base/typography';
+
+// Components
+@use 'components/header';
+@use 'components/layout';
+@use 'components/profile';
+
+// Responsive
+@use 'responsive/mobile';
