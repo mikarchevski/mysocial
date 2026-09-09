@@ -1,10 +1,10 @@
 // src/routes/users.ts
 import { FastifyPluginAsync } from 'fastify';
-import { db } from '../db/index.js';
-import { users } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import AuthService from '../services/auth.service.js';
 
-export const userRoutes: FastifyPluginAsync = async (app) => {
+const authService = new AuthService();
+
+export const usersRoutes: FastifyPluginAsync = async (app) => {
   app.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const userId = parseInt(id, 10);
@@ -13,23 +13,39 @@ export const userRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: 'Некорректный ID' });
     }
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        email: users.email,
-        city: users.city,
-        dateOfBirth: users.dateOfBirth,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    try {
+      const user = await authService.getUserById(userId);
+      return { user };
+    } catch (error: any) {
+      return reply.status(404).send({ error: error.message });
+    }
+  });
 
-    if (!user) {
-      return reply.status(404).send({ error: 'Пользователь не найден' });
+  // Обновление профиля (только свой)
+  app.put('/:id', {
+    preValidation: [(app as any).authenticate]
+  }, async (request, reply) => {
+    const currentUserId = (request.user as any).userId;
+    const { id } = request.params as { id: string };
+    const targetId = parseInt(id, 10);
+
+    if (currentUserId !== targetId) {
+      return reply.status(403).send({ error: 'Можно редактировать только свой профиль' });
     }
 
-    return { user };
+    const { city, phone, website, familyStatus, about } = request.body as any;
+
+    try {
+      const user = await authService.updateUser(targetId, {
+        city: city ?? undefined,
+        phone: phone ?? undefined,
+        website: website ?? undefined,
+        familyStatus: familyStatus ?? undefined,
+        about: about ?? undefined,
+      });
+      return { user };
+    } catch (error: any) {
+      return reply.status(400).send({ error: error.message });
+    }
   });
 };

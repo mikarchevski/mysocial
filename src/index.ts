@@ -12,8 +12,7 @@ import { messageRoutes } from './routes/messages.js';
 import { websocketHandler } from './plugins/websocket.js';
 import { redis } from './redis/index.js';
 import { pool } from './db/index.js';
-import { userRoutes } from './routes/users.js';
-
+import { usersRoutes } from './routes/users.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +54,14 @@ app.get('/auth', async (request, reply) => {
   return reply.sendFile('auth.html');
 });
 
+app.get('/dialogs', async (request, reply) => {
+  try {
+    await request.jwtVerify();
+    return reply.sendFile('dialogs.html');
+  } catch (err) {
+    return reply.redirect('/auth');
+  }
+});
 
 
 // ОБНОВЛЕНИЕ: теперь возвращаем index.html вместо profile.html
@@ -71,7 +78,7 @@ app.get('/:id', async (request, reply) => {
 // 4. API Роуты (до staticFiles)
 await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(messageRoutes, { prefix: '/api/messages' });
-await app.register(userRoutes, { prefix: '/api/users' });
+await app.register(usersRoutes, { prefix: '/api/users' });
 
 // 5. Статические файлы (ПОСЛЕ всех специфических маршрутов)
 await app.register(staticFiles, {

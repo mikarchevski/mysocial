@@ -10,7 +10,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "sass": "sass public/scss/style.scss public/css/style.css",
+    "sass": "sass public/scss/main.scss public/css/style.css",
     "sass:watch": "sass --watch public/scss/main.scss public/css/style.css"
   },
   "dependencies": {

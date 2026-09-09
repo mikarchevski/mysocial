@@ -10,6 +10,9 @@
 @use 'components/header';
 @use 'components/layout';
 @use 'components/profile';
+@use 'components/side-menu';
+@use 'components/dialogs';
+@use 'components/wall';
 
 // Pages
 @use 'pages/auth';

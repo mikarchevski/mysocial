@@ -1,0 +1,332 @@
+@use '../variables' as *;
+
+.wall {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-top: 20px;
+
+  &__header {
+    background: #f0f2f5;
+    padding: 10px 15px;
+    margin: 0;
+  }
+
+  &__title {
+    background: #f0f2f5;
+    padding: 0 15px;
+    margin: 0 -20px 0;
+    font-size: 14px;
+    color: #2a5885;
+    text-transform: uppercase;
+  }
+
+  // Форма нового поста
+  &__new-post {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid #e7e8ec;
+  }
+
+  &__new-post-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__new-post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 10px 12px;
+    border: 1px solid $border-color;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(74, 118, 168, 0.15);
+    }
+
+    &::placeholder {
+      color: #939393;
+    }
+  }
+
+  &__new-post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  &__attachments {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__attach-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: #939393;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+
+    &:hover {
+      background: #f0f2f5;
+      color: $primary-color;
+    }
+  }
+
+  &__submit-btn {
+    padding: 8px 24px;
+    background: $primary-color;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: darken($primary-color, 8%);
+    }
+
+    &:disabled {
+      background: #aab4be;
+      cursor: not-allowed;
+    }
+  }
+
+  // Фильтры записей
+  &__filters {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #e7e8ec;
+    background: #fafbfc;
+  }
+
+  &__filter-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+
+    &:hover {
+      color: $primary-color;
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    &--active {
+      color: $primary-color;
+      font-weight: 600;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: $primary-color;
+      }
+    }
+  }
+
+  // Список постов
+  &__posts {
+    padding: 0;
+  }
+
+  &__empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: $text-secondary;
+    font-size: 14px;
+  }
+
+  // Отдельный пост
+  &__post {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid #e7e8ec;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__post-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__post-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  &__post-author {
+    font-size: 14px;
+    font-weight: 600;
+    color: $link-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__post-time {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+
+  &__post-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: $text-color;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+  }
+
+  // Кнопки действий под постом
+  &__post-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  &__post-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: $text-secondary;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 16px;
+    transition: background 0.2s, color 0.2s;
+
+    &:hover {
+      background: #f0f2f5;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    &--liked {
+      color: #e64646;
+
+      &:hover {
+        background: #ffe6e6;
+      }
+    }
+
+    &--comment:hover {
+      color: $primary-color;
+    }
+
+    &--share:hover {
+      color: $primary-color;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .wall {
+    &__new-post {
+      flex-direction: column;
+    }
+
+    &__new-post-avatar {
+      width: 40px;
+      height: 40px;
+    }
+
+    &__new-post-footer {
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    &__attachments {
+      flex-wrap: wrap;
+    }
+
+    &__submit-btn {
+      width: 100%;
+    }
+
+    &__post {
+      flex-direction: column;
+    }
+
+    &__post-avatar {
+      width: 40px;
+      height: 40px;
+    }
+
+    &__filters {
+      flex-direction: column;
+    }
+
+    &__filter-btn {
+      text-align: left;
+    }
+  }
+}

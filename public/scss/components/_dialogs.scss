@@ -1,0 +1,326 @@
+@use '../variables' as *;
+// Контейнер диалогов
+.dialogs-container {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+// Табы
+.dialogs-tabs {
+  display: flex;
+  border-bottom: 2px solid $border-color;
+  background: #f5f6f8;
+}
+
+.dialogs-tab {
+  flex: 1;
+  padding: 16px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: $text-secondary;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  &--active {
+    background: white;
+    color: $primary-color;
+    border-bottom: 2px solid $primary-color;
+    margin-bottom: -2px;
+  }
+}
+
+// Контент табов
+.dialogs-tab-content {
+  display: none;
+  padding: 20px;
+
+  &--active {
+    display: block;
+  }
+}
+
+// Шапка списка диалогов
+.dialogs-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dialogs-search {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  font-size: 14px;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+.dialogs-btn {
+  padding: 10px 20px;
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: darken($primary-color, 8%);
+  }
+}
+
+// Фильтры
+.dialogs-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-btn {
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid $border-color;
+  border-radius: 4px;
+  font-size: 13px;
+  color: $text-secondary;
+  cursor: pointer;
+
+  &:hover {
+    background: #f5f6f8;
+  }
+
+  &--active {
+    background: $primary-color;
+    color: white;
+    border-color: $primary-color;
+  }
+}
+
+// Список диалогов
+.dialogs-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid $border-color;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f5f6f8;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-right: 12px;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  &__name {
+    font-weight: 600;
+    font-size: 14px;
+    color: $text-color;
+  }
+
+  &__time {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+
+  &__message {
+    font-size: 13px;
+    color: $text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: #ff3347;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+  }
+}
+
+// Открытые диалоги
+.open-dialogs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.open-dialog {
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f5f6f8;
+    border-bottom: 1px solid $border-color;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  &__close {
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: $text-secondary;
+    cursor: pointer;
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: $text-color;
+    }
+  }
+
+  &__messages {
+    height: 400px;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__input {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid $border-color;
+    background: #fafafa;
+
+    input {
+      flex: 1;
+    }
+  }
+}
+
+.send-btn {
+  padding: 10px 20px;
+  background: $primary-color;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: darken($primary-color, 8%);
+  }
+}
+
+// Сообщения
+// Сообщения
+.message {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  position: relative;
+  word-wrap: break-word;
+
+  &--own {
+    // Свои сообщения — справа
+    align-self: flex-end;
+    background: #0084ff;
+    color: white;
+    border-bottom-right-radius: 4px;
+    margin-left: auto;
+  }
+
+  &--partner {
+    // Сообщения собеседника — слева
+    align-self: flex-start;
+    background: #e4e6eb;
+    color: black;
+    border-bottom-left-radius: 4px;
+  }
+
+  &__content {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__time {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 4px;
+    text-align: right;
+  }
+}
+
+// Пустое состояние
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: $text-secondary;
+  font-size: 14px;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: $text-secondary;
+}

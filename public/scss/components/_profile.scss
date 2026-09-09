@@ -86,22 +86,35 @@
 }
 
 // Info block
+// Info block
+// Info block
+// Info block
+// Info block
 .info-block {
-    margin-bottom: 25px;
-
-    &__title {
+     &__title {
         background: #f0f2f5;
         padding: 10px 15px;
-        margin: 0 -20px 15px;
+        margin: 0 -20px 12px;
         font-size: 14px;
+        font-weight: 600;
         color: #2a5885;
         text-transform: uppercase;
+        letter-spacing: 0.3px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__icon {
+        flex-shrink: 0;
+        color: #4a76a8;
     }
 
     &__row {
         display: flex;
         padding: 8px 0;
-        border-bottom: 1px solid #f0f2f5;
+        border-bottom: 1px solid #e7e8ec;
+        align-items: center;
 
         &:last-child {
             border-bottom: none;
@@ -109,34 +122,36 @@
     }
 
     &__label {
-        width: 150px;
-        color: #939393;
+        width: 180px;
+        color: #65676a;
         flex-shrink: 0;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__row-icon {
+        flex-shrink: 0;
+        color: #939393;
     }
 
     &__value {
         flex: 1;
         color: #000;
+        font-size: 14px;
+        line-height: 1.4;
     }
 
-    &__achievements-list {
-        padding: 10px 0;
-    }
-
-    &__achievement-item {
-        display: flex;
-        align-items: center;
-        padding: 5px 0;
-    }
-
-    &__achievement-icon {
-        margin-right: 8px;
-        font-size: 16px;
-    }
-
-    &__achievement-text {
+    &__subtitle {
         font-size: 13px;
-        color: #2a5885;
+        font-weight: 600;
+        color: #65676a;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 4px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #e7e8ec;
     }
 }
 
@@ -155,5 +170,133 @@
             width: 150px;
             height: 150px;
         }
+    }
+}
+
+// Кнопки действий профиля
+.profile-actions {
+    padding: 15px 20px;
+    border-top: 1px solid #e7e8ec;
+
+    &__btn {
+        background: #4a76a8;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+            background: #3a6698;
+        }
+    }
+}
+
+// Модальное окно
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid #e7e8ec;
+    }
+
+    &__title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #000;
+        margin: 0;
+    }
+
+    &__close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #939393;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+
+        &:hover {
+            background: #f0f2f5;
+            color: #000;
+        }
+    }
+
+    &__form {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 8px;
+    }
+
+    &__btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &--cancel {
+            background: #f0f2f5;
+            color: #65676a;
+
+            &:hover {
+                background: #e4e6eb;
+            }
+        }
+
+        &--save {
+            background: #4a76a8;
+            color: white;
+
+            &:hover {
+                background: #3a6698;
+            }
+        }
+    }
+}
+
+// Ссылка в сайте
+.info-block__value a {
+    color: #2a5885;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
     }
 }
