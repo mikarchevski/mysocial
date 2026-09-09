@@ -9,15 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             const targetTab = tab.dataset.tab;
 
-            // Убираем активный класс у всех табов и форм
             tabs.forEach(t => t.classList.remove('auth-tab--active'));
             formWrappers.forEach(w => w.classList.remove('auth-form-wrapper--active'));
 
-            // Добавляем активный класс нужному табу и форме
             tab.classList.add('auth-tab--active');
             document.getElementById(`${targetTab}FormWrapper`).classList.add('auth-form-wrapper--active');
 
-            // Очищаем ошибки при переключении
             clearErrors();
         });
     });
@@ -38,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Обработка входа
-    // Обработка входа
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -57,14 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
-                    credentials: 'include' // Важно для кук!
+                    credentials: 'include'
                 });
 
-                const result = await response.json(); // Вызываем ОДИН раз
+                const result = await response.json();
 
                 if (response.ok) {
-                    // Проверяем, что есть user.id
                     if (result.user && result.user.id) {
+                        // ✅ Сохраняем пользователя в кэш для мгновенного рендера
+                        localStorage.setItem('currentUser', JSON.stringify(result.user));
                         window.location.href = `/${result.user.id}`;
                     } else {
                         showError('loginError', 'Ошибка: не получен ID пользователя');
@@ -113,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok) {
-                    // После успешной регистрации переключаем на таб входа
                     alert('Регистрация успешна! Теперь вы можете войти.');
                     document.querySelector('[data-tab="login"]').click();
                     loginForm.reset();

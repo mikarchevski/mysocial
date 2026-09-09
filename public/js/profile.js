@@ -1,5 +1,30 @@
 // public/js/profile.js
 
+// ✅ Мгновенный рендер из кэша — убираем скелетоны до загрузки DOM
+(() => {
+    const cachedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (cachedUser) {
+        const currentUsernameEl = document.getElementById('currentUsername');
+        if (currentUsernameEl) {
+            currentUsernameEl.className = '';
+            currentUsernameEl.textContent = `${cachedUser.firstName} ${cachedUser.lastName}`;
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) logoutBtn.style.display = 'block';
+
+        // Если свой профиль — сразу подставляем имя (убираем скелетон)
+        const pathParts = window.location.pathname.split('/');
+        const reqId = parseInt(pathParts[1], 10);
+        if (cachedUser.id === reqId) {
+            const profileNameEl = document.getElementById('profileName');
+            if (profileNameEl) {
+                profileNameEl.textContent = `${cachedUser.firstName} ${cachedUser.lastName}`;
+            }
+        }
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', async () => {
     const pathParts = window.location.pathname.split('/');
     const requestedUserId = pathParts[1];
@@ -16,8 +41,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const meData = await meResponse.json();
             currentUser = meData.user;
 
+            // ✅ Сохраняем в кэш для мгновенного рендера при следующем визите
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
             const currentUsernameEl = document.getElementById('currentUsername');
             if (currentUsernameEl) {
+                currentUsernameEl.className = '';
                 currentUsernameEl.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
             }
 
@@ -38,9 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Показываем пункт "Редактировать профиль" в меню только на своём профиле
     const editProfileBtn = document.getElementById('editProfileBtn');
-        if (editProfileBtn && isOwnProfile) {
-            editProfileBtn.style.display = 'inline-block';
-        }
+    if (editProfileBtn && isOwnProfile) {
+        editProfileBtn.style.display = 'inline-block';
+    }
 
     // Скрываем форму нового поста, если это не свой профиль
     const wallNewPost = document.getElementById('wallNewPost');
@@ -55,15 +84,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!response.ok) {
             if (response.status === 404) {
-                const el = (id) => document.getElementById(id);
-                if (el('profileName')) el('profileName').textContent = 'Пользователь не найден';
-                if (el('userCity')) el('userCity').textContent = 'Не указан';
-                if (el('userBirthday')) el('userBirthday').textContent = 'Не указана';
-                if (el('userEmail')) el('userEmail').textContent = 'Не указан';
-                if (el('userPhone')) el('userPhone').textContent = 'Не указан';
-                if (el('userWebsite')) el('userWebsite').textContent = 'Не указан';
-                if (el('userFamily')) el('userFamily').textContent = 'Не указано';
-                if (el('userAbout')) el('userAbout').textContent = 'Не указано';
+                // ✅ Очищаем скелетоны и показываем текст
+                const clearSkeleton = (id, fallback) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = fallback;
+                    }
+                };
+                clearSkeleton('profileName', 'Пользователь не найден');
+                clearSkeleton('userCity', 'Не указан');
+                clearSkeleton('userBirthday', 'Не указана');
+                clearSkeleton('userEmail', 'Не указан');
+                clearSkeleton('userPhone', 'Не указан');
+                clearSkeleton('userWebsite', 'Не указан');
+                clearSkeleton('userFamily', 'Не указано');
+                clearSkeleton('userAbout', 'Не указано');
             } else {
                 throw new Error('Ошибка загрузки профиля');
             }
@@ -73,6 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await response.json();
         userProfile = data.user;
 
+        // ✅ textContent автоматически заменяет innerHTML (включая skeleton span)
         const set = (id, value) => {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
@@ -84,8 +120,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         set('userFamily', userProfile.familyStatus || 'Не указано');
         set('userAbout', userProfile.about || 'Не указано');
         set('userPhone', userProfile.phone || 'Не указан');
-        set('userWebsite', userProfile.website ? formatWebsite(userProfile.website) : 'Не указан');
 
+        // Сайт — через innerHTML, т.к. может быть ссылкой
         const userWebsiteEl = document.getElementById('userWebsite');
         if (userWebsiteEl) {
             userWebsiteEl.innerHTML = userProfile.website ? formatWebsite(userProfile.website) : 'Не указан';
@@ -116,7 +152,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     credentials: 'include',
                 });
-                if (response.ok) window.location.href = '/auth';
+                if (response.ok) {
+                    // ✅ Очищаем кэш при выходе
+                    localStorage.removeItem('currentUser');
+                    window.location.href = '/auth';
+                }
             } catch (err) {
                 console.error('Ошибка при выходе:', err);
             }

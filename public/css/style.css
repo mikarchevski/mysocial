@@ -360,6 +360,38 @@ body {
   text-decoration: underline;
 }
 
+.skeleton {
+  display: inline-block;
+  height: 14px;
+  width: 120px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e7e8ec 25%, #f0f2f5 50%, #e7e8ec 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.skeleton--name {
+  height: 24px;
+  width: 200px;
+  margin-bottom: 4px;
+}
+.skeleton--short {
+  width: 60px;
+}
+.skeleton--medium {
+  width: 100px;
+}
+.skeleton--long {
+  width: 150px;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
 .badge {
   display: inline-flex;
   align-items: center;

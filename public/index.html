@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Профиль пользователя | MySocial</title>
+    <title>MySocial</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 
@@ -14,7 +14,7 @@
         <div class="header__content">
             <div class="header__logo">MySocial</div>
             <div class="header__user-info">
-                <span id="currentUsername">Гость</span>
+                <span id="currentUsername" class="skeleton skeleton--medium"> </span>
                 <button id="logoutBtn" class="header__logout-btn" style="display: none;">Выйти</button>
             </div>
         </div>
@@ -51,7 +51,9 @@
                 <div class="profile-info-section">
                     <div class="profile-info-section__header">
                         <div class="profile-info-section__info">
-                            <h1 class="profile-info-section__name" id="profileName">Загрузка...</h1>
+                            <h1 class="profile-info-section__name" id="profileName">
+                                <span class="skeleton skeleton--name"> </span>
+                            </h1>
                         </div>
                     </div>
 
@@ -59,7 +61,7 @@
                         <!-- Пол -->
                         <div class="info-block__row">
                             <span class="info-block__label">Пол</span>
-                            <span class="info-block__value" id="userGender">Не указан</span>
+                            <span class="info-block__value" id="userGender"><span class="skeleton skeleton--short"> </span></span>
                         </div>
 
                         <!-- Город -->
@@ -72,7 +74,7 @@
                                 </svg>
                                 Город
                             </span>
-                            <span class="info-block__value" id="userCity">Не указан</span>
+                            <span class="info-block__value" id="userCity"><span class="skeleton skeleton--medium"> </span></span>
                         </div>
 
                         <!-- Дата рождения -->
@@ -87,7 +89,7 @@
                                 </svg>
                                 Дата рождения
                             </span>
-                            <span class="info-block__value" id="userBirthday">Не указана</span>
+                            <span class="info-block__value" id="userBirthday"><span class="skeleton skeleton--long"> </span></span>
                         </div>
 
                         <div class="info-block__row">
@@ -98,7 +100,7 @@
                                 </svg>
                                 Семейное положение
                             </span>
-                            <span class="info-block__value" id="userFamily">Не указано</span>
+                            <span class="info-block__value" id="userFamily"><span class="skeleton skeleton--medium"> </span></span>
                         </div>
 
                         <!-- О себе -->
@@ -113,7 +115,7 @@
                                 </svg>
                                 О себе
                             </span>
-                            <span class="info-block__value" id="userAbout">Не указано</span>
+                            <span class="info-block__value" id="userAbout"><span class="skeleton skeleton--long"> </span></span>
                         </div>
 
                         <!-- Блок "Информация" с контактной информацией -->
@@ -122,7 +124,6 @@
                                 Информация
                             </h3>
 
-                            <!-- Контактная информация -->
                             <div class="info-block__subtitle">Контактная информация</div>
 
                             <!-- Email -->
@@ -136,7 +137,7 @@
                                     </svg>
                                     Email
                                 </span>
-                                <span class="info-block__value" id="userEmail">Не указан</span>
+                                <span class="info-block__value" id="userEmail"><span class="skeleton skeleton--long"> </span></span>
                             </div>
 
                             <!-- Телефон -->
@@ -149,7 +150,7 @@
                                     </svg>
                                     Телефон
                                 </span>
-                                <span class="info-block__value" id="userPhone">Не указан</span>
+                                <span class="info-block__value" id="userPhone"><span class="skeleton skeleton--medium"> </span></span>
                             </div>
 
                             <!-- Сайт -->
@@ -164,7 +165,7 @@
                                     </svg>
                                     Сайт
                                 </span>
-                                <span class="info-block__value" id="userWebsite">Не указан</span>
+                                <span class="info-block__value" id="userWebsite"><span class="skeleton skeleton--long"> </span></span>
                             </div>
                         </div>
                     </div>
