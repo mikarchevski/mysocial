@@ -227,6 +227,14 @@ body {
   border-bottom: 1px solid #e7e8ec;
 }
 
+.info-block__row:has(+ .info-block) {
+  border-bottom: none;
+}
+
+.info-block__row--no-border {
+  border-bottom: none;
+}
+
 @media (max-width: 768px) {
   .profile-card {
     flex-direction: column;

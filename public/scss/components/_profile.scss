@@ -154,6 +154,14 @@
         border-bottom: 1px solid #e7e8ec;
     }
 }
+// Убираем полоску у последнего ряда вне блока .info-block
+.info-block__row:has(+ .info-block) {
+    border-bottom: none;
+}
+
+.info-block__row--no-border {
+    border-bottom: none;
+}
 
 // Responsive
 @media (max-width: 768px) {

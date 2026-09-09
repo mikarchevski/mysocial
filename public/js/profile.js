@@ -86,15 +86,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         set('userPhone', userProfile.phone || 'Не указан');
         set('userWebsite', userProfile.website ? formatWebsite(userProfile.website) : 'Не указан');
 
-        const userEmailEl = document.getElementById('userEmail');
-        if (userEmailEl) {
-            if (isOwnProfile && currentUser.email) {
-                userEmailEl.textContent = currentUser.email;
-            } else if (userProfile.email) {
-                userEmailEl.textContent = userProfile.email;
-            } else {
-                userEmailEl.textContent = 'Не указан';
-            }
+        const userWebsiteEl = document.getElementById('userWebsite');
+        if (userWebsiteEl) {
+            userWebsiteEl.innerHTML = userProfile.website ? formatWebsite(userProfile.website) : 'Не указан';
         }
 
         document.title = `${userProfile.firstName} ${userProfile.lastName} | MySocial`;
