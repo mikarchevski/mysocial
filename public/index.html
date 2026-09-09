@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MySocial</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Профиль пользователя | MySocial</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -11,8 +12,8 @@
         <div class="header__content">
             <div class="header__logo">MySocial</div>
             <div class="header__user-info">
-                <span class="header__username" id="username">Гость</span>
-                <button class="header__logout-btn" id="logoutBtn" style="display: none;">Выйти</button>
+                <span id="currentUsername">Гость</span>
+                <button id="logoutBtn" class="header__logout-btn" style="display: none;">Выйти</button>
             </div>
         </div>
     </div>
@@ -21,68 +22,26 @@
         <aside class="sidebar">
             <nav class="menu">
                 <ul class="menu__list">
-                    <li class="menu__item"><a href="#" class="menu__link menu__link--active">Моя страница</a></li>
+                    <li class="menu__item"><a href="/" class="menu__link">Моя страница</a></li>
                     <li class="menu__item"><a href="#" class="menu__link">Мои друзья</a></li>
                     <li class="menu__item"><a href="#" class="menu__link">Мои сообщения</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои группы</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои фотографии</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои аудиозаписи</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои видеозаписи</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои заметки</a></li>
-                    <li class="menu__item"><a href="#" class="menu__link">Мои настройки</a></li>
                 </ul>
             </nav>
         </aside>
 
         <main class="content">
             <div class="profile-card">
-                <!-- Блок с аватаром -->
                 <div class="avatar-section">
                     <div class="avatar-section__container">
-                        <img src="/images/default-avatar.svg" alt="Аватар" id="userAvatar" class="avatar-section__img">
-                        <!-- <button class="avatar-section__btn-change" id="changeAvatarBtn">Изменить фото</button> -->
-                    </div>
-                    
-                    <!-- Дополнительные данные под аватаром -->
-                    <div class="avatar-section__data">
-                        <div class="info-block">
-                            <h3 class="info-block__title">Статистика</h3>
-                            <div class="info-block__row">
-                                <span class="info-block__label">Фотографий:</span>
-                                <span class="info-block__value" id="photoCount">0</span>
-                            </div>
-                            <div class="info-block__row">
-                                <span class="info-block__label">Лайков:</span>
-                                <span class="info-block__value" id="likeCount">0</span>
-                            </div>
-                            <div class="info-block__row">
-                                <span class="info-block__label">Комментариев:</span>
-                                <span class="info-block__value" id="commentCount">0</span>
-                            </div>
-                        </div>
-                        
-                        <div class="info-block">
-                            <h3 class="info-block__title">Достижения</h3>
-                            <div class="info-block__achievements-list">
-                                <div class="info-block__achievement-item">
-                                    <span class="info-block__achievement-icon">🏆</span>
-                                    <span class="info-block__achievement-text">Новичок</span>
-                                </div>
-                                <div class="info-block__achievement-item">
-                                    <span class="info-block__achievement-icon">📅</span>
-                                    <span class="info-block__achievement-text">Здесь 1 день</span>
-                                </div>
-                            </div>
-                        </div>
+                        <img src="/images/default-avatar.svg" alt="Аватар" class="avatar-section__img" id="userAvatar">
                     </div>
                 </div>
-                
-                <!-- Основная информация профиля -->
+
                 <div class="profile-info-section">
                     <div class="profile-info-section__header">
                         <div class="profile-info-section__info">
-                            <h1 class="profile-info-section__name" id="profileName">Пользователь</h1>
-                            <p class="profile-info-section__status">Обновлено только что</p>
+                            <h1 class="profile-info-section__name" id="profileName">Загрузка...</h1>
+                            <p class="profile-info-section__status">ID: <span id="profileId">...</span></p>
                         </div>
                     </div>
 
@@ -94,8 +53,8 @@
                                 <span class="info-block__value" id="userCity">Не указан</span>
                             </div>
                             <div class="info-block__row">
-                                <span class="info-block__label">О себе:</span>
-                                <span class="info-block__value" id="userBio">Информация не добавлена</span>
+                                <span class="info-block__label">Дата рождения:</span>
+                                <span class="info-block__value" id="userBirthday">Не указана</span>
                             </div>
                         </div>
 
@@ -112,6 +71,6 @@
         </main>
     </div>
 
-    <script src="/js/app.js"></script>
+    <script src="/js/profile.js"></script>
 </body>
 </html>

@@ -1,23 +1,24 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, date } from 'drizzle-orm/pg-core';
+// src/db/schema.ts
+import { pgTable, serial, integer, varchar, text, timestamp, boolean, date } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: serial('id').primaryKey(), // Целочисленный автоинкремент
   firstName: varchar('first_name', { length: 50 }).notNull(),
   lastName: varchar('last_name', { length: 50 }).notNull(),
   email: varchar('email', { length: 255 }).unique().notNull(),
   passwordHash: text('password_hash').notNull(),
   dateOfBirth: date('date_of_birth').notNull(),
-  city: varchar('city', { length: 100 }), // Опционально
-  publicKey: text('public_key'), // Для E2EE (пока опционально)
+  city: varchar('city', { length: 100 }),
+  publicKey: text('public_key'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const messages = pgTable('messages', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  senderId: uuid('sender_id').references(() => users.id).notNull(),
-  recipientId: uuid('recipient_id').references(() => users.id).notNull(),
-  encryptedContent: text('encrypted_content').notNull(), // Зашифрованный текст
-  encryptedKey: text('encrypted_key').notNull(), // Зашифрованный симметричный ключ
+  id: serial('id').primaryKey(), // Тоже сделаем serial для простоты
+  senderId: integer('sender_id').references(() => users.id).notNull(), // Теперь integer!
+  recipientId: integer('recipient_id').references(() => users.id).notNull(), // Теперь integer!
+  encryptedContent: text('encrypted_content').notNull(),
+  encryptedKey: text('encrypted_key').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   isRead: boolean('is_read').default(false).notNull(),
 });

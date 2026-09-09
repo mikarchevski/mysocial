@@ -113,4 +113,43 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     
     return { user };
   });
+
+  // Выход из системы
+  app.post('/logout', async (request, reply) => {
+    reply.clearCookie('token', {
+      path: '/',
+    });
+    return { success: true };
+  });
+
+  // Получение пользователя по ID (публичный эндпоинт)
+  // В src/routes/auth.ts обновите эндпоинт получения пользователя по ID:
+  // app.get('/users/:id', async (request, reply) => {
+  //     const { id } = request.params as { id: string };
+  //     const userId = parseInt(id, 10);
+
+  //     if (isNaN(userId)) {
+  //         return reply.status(400).send({ error: 'Некорректный ID' });
+  //     }
+
+  //     // Используем select со всеми нужными полями
+  //     const [user] = await db
+  //         .select({
+  //             id: users.id,
+  //             firstName: users.firstName,
+  //             lastName: users.lastName,
+  //             email: users.email,  // Включаем email
+  //             city: users.city,
+  //             dateOfBirth: users.dateOfBirth,
+  //         })
+  //         .from(users)
+  //         .where(eq(users.id, userId))
+  //         .limit(1);
+
+  //     if (!user) {
+  //         return reply.status(404).send({ error: 'Пользователь не найден' });
+  //     }
+
+  //     return { user };
+  // });
 };

@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Обработка входа
+    // Обработка входа
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -55,17 +56,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(data),
+                    credentials: 'include' // Важно для кук!
                 });
 
-                const result = await response.json();
+                const result = await response.json(); // Вызываем ОДИН раз
 
                 if (response.ok) {
-                    window.location.href = '/';
+                    // Проверяем, что есть user.id
+                    if (result.user && result.user.id) {
+                        window.location.href = `/${result.user.id}`;
+                    } else {
+                        showError('loginError', 'Ошибка: не получен ID пользователя');
+                    }
                 } else {
                     showError('loginError', result.error || 'Ошибка входа');
                 }
             } catch (err) {
+                console.error('Ошибка входа:', err);
                 showError('loginError', 'Ошибка сети. Попробуйте позже.');
             }
         });
