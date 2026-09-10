@@ -15,9 +15,9 @@ async function loadCurrentUser() {
         if (response.ok) {
             const data = await response.json();
             const user = data.user;
-            
+
             window.currentUserId = user.id;
-            
+
             const usernameEl = document.getElementById('currentUsername');
             if (usernameEl) {
                 usernameEl.className = '';
@@ -52,7 +52,7 @@ async function loadDialogs(filter = 'all') {
 function renderDialogsList(dialogs) {
     const container = document.getElementById('dialogsList');
     if (!container) return;
-    
+
     if (dialogs.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Нет диалогов</p></div>';
         return;
@@ -87,7 +87,7 @@ function renderDialogsList(dialogs) {
 // ✅ Открыть диалог — с защитой от дубликатов
 function openDialog(userId) {
     userId = String(userId); // гарантируем строку
-    
+
     if (!state.openDialogs.includes(userId)) {
         state.openDialogs.push(userId);
         saveOpenDialogs();
@@ -254,45 +254,100 @@ function formatDate(dateString) {
     }
 }
 
-// ✅ Защита от повторной инициализации
-let dialogsInitialized = false;
+// === Инициализация страницы диалогов ===
 
-function initDialogsPage() {
-    if (dialogsInitialized) return;
-    dialogsInitialized = true;
-
+function initDialogsView() {
+    // Загружаем текущего пользователя
     loadCurrentUser();
+
+    // Загружаем список диалогов
     loadDialogs(state.currentFilter);
 
-    const tabsContainer = document.querySelector('.dialogs-tabs');
-    if (tabsContainer) {
-        tabsContainer.onclick = (e) => {
-            const tab = e.target.closest('.dialogs-tab');
-            if (tab) switchTab(tab.dataset.tab);
-        };
+    // Рендерим открытые диалоги
+    renderOpenDialogs();
+
+    // Переключение табов
+    document.querySelectorAll('.dialogs-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.dialogs-tab').forEach(t => t.classList.remove('dialogs-tab--active'));
+            document.querySelectorAll('.dialogs-tab-content').forEach(c => c.classList.remove('dialogs-tab-content--active'));
+
+            tab.classList.add('dialogs-tab--active');
+            const targetTab = tab.dataset.tab;
+            const targetContent = document.getElementById(`tab-${targetTab}`);
+            if (targetContent) targetContent.classList.add('dialogs-tab-content--active');
+        });
+    });
+
+    // Фильтры диалогов
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
+            btn.classList.add('filter-btn--active');
+            state.currentFilter = btn.dataset.filter;
+            loadDialogs(state.currentFilter);
+        });
+    });
+
+    // Поиск пользователей (модалка "Написать")
+    const newMessageBtn = document.getElementById('newMessageBtn');
+    const newMessageModal = document.getElementById('newMessageModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const searchUserInput = document.getElementById('searchUserInput');
+    const searchResults = document.getElementById('searchResults');
+
+    if (newMessageBtn && newMessageModal) {
+        newMessageBtn.addEventListener('click', () => {
+            newMessageModal.style.display = 'block';
+        });
     }
 
-    const filterContainer = document.querySelector('.dialogs-filter');
-    if (filterContainer) {
-        filterContainer.onclick = (e) => {
-            const btn = e.target.closest('.filter-btn');
-            if (btn) {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
-                btn.classList.add('filter-btn--active');
-                state.currentFilter = btn.dataset.filter;
-                loadDialogs(state.currentFilter);
+    if (closeModalBtn && newMessageModal) {
+        closeModalBtn.addEventListener('click', () => {
+            newMessageModal.style.display = 'none';
+        });
+    }
+
+    if (searchUserInput && searchResults) {
+        searchUserInput.addEventListener('input', async () => {
+            const query = searchUserInput.value.trim();
+            if (query.length < 2) {
+                searchResults.innerHTML = '';
+                return;
             }
-        };
-    }
 
-    if (state.openDialogs.length > 0) {
-        renderOpenDialogs();
+            try {
+                const response = await fetch(`/api/messages/search?q=${encodeURIComponent(query)}`, {
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    searchResults.innerHTML = data.users.map(user => `
+                        <div class="search-result-item" data-user-id="${user.id}">
+                            ${user.firstName} ${user.lastName}
+                        </div>
+                    `).join('');
+
+                    searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            openDialog(item.dataset.userId);
+                            newMessageModal.style.display = 'none';
+                            searchUserInput.value = '';
+                            searchResults.innerHTML = '';
+                        });
+                    });
+                }
+            } catch (err) {
+                console.error('Ошибка поиска:', err);
+            }
+        });
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    initDialogsPage();
-});
+// Экспортируем для SPA-роутера
+window.initDialogsView = initDialogsView;
 
-// Экспортируем для SPA-router
-window.initDialogsView = initDialogsPage;
+// Инициализация при полной загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    initDialogsView();
+});
