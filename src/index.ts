@@ -13,6 +13,8 @@ import { websocketHandler } from './plugins/websocket.js';
 import { redis } from './redis/index.js';
 import { pool } from './db/index.js';
 import { usersRoutes } from './routes/users.js';
+import { postsRoutes } from './routes/posts.js'; // ✅ добавить
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,6 +81,7 @@ app.get('/:id', async (request, reply) => {
 await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(messageRoutes, { prefix: '/api/messages' });
 await app.register(usersRoutes, { prefix: '/api/users' });
+await app.register(postsRoutes, { prefix: '/api/posts' }); // 
 
 // 5. Статические файлы (ПОСЛЕ всех специфических маршрутов)
 await app.register(staticFiles, {

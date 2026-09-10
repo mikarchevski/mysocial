@@ -27,6 +27,18 @@ export const messages = pgTable('messages', {
   isRead: boolean('is_read').default(false).notNull(),
 });
 
+// ... existing code ...
+
+export const posts = pgTable('posts', {
+  id: serial('id').primaryKey(),
+  authorId: integer('author_id').references(() => users.id).notNull(),
+  targetUserId: integer('target_user_id').references(() => users.id).notNull(), // чья стена
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type Post = typeof posts.$inferSelect;
+export type NewPost = typeof posts.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Message = typeof messages.$inferSelect;

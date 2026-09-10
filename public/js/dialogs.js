@@ -1,12 +1,13 @@
 // public/js/dialogs.js
 
-// Состояние приложения
+// ✅ Защита от дубликатов при загрузке из localStorage
+const rawDialogs = JSON.parse(localStorage.getItem('openDialogs') || '[]');
+
 const state = {
-    openDialogs: JSON.parse(localStorage.getItem('openDialogs') || '[]'),
+    openDialogs: [...new Set(rawDialogs.map(String))], // уникальные строки
     currentFilter: 'all',
 };
 
-// Загрузка данных текущего пользователя
 // Загрузка данных текущего пользователя
 async function loadCurrentUser() {
     try {
@@ -15,12 +16,16 @@ async function loadCurrentUser() {
             const data = await response.json();
             const user = data.user;
             
-            // Сохраняем ID текущего пользователя глобально
             window.currentUserId = user.id;
             
-            document.getElementById('currentUsername').textContent = 
-                `${user.firstName} ${user.lastName}`;
-            document.getElementById('logoutBtn').style.display = 'block';
+            const usernameEl = document.getElementById('currentUsername');
+            if (usernameEl) {
+                usernameEl.className = '';
+                usernameEl.textContent = `${user.firstName} ${user.lastName}`;
+            }
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.style.display = 'block';
         }
     } catch (err) {
         console.error('Ошибка загрузки пользователя:', err);
@@ -46,6 +51,7 @@ async function loadDialogs(filter = 'all') {
 // Рендер списка диалогов
 function renderDialogsList(dialogs) {
     const container = document.getElementById('dialogsList');
+    if (!container) return;
     
     if (dialogs.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Нет диалогов</p></div>';
@@ -70,36 +76,35 @@ function renderDialogsList(dialogs) {
         </div>
     `).join('');
 
-    // Добавляем обработчики клика
-    container.querySelectorAll('.dialog-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const userId = item.dataset.userId;
-            openDialog(userId);
-        });
-    });
+    container.onclick = (e) => {
+        const item = e.target.closest('.dialog-item');
+        if (item) {
+            openDialog(item.dataset.userId);
+        }
+    };
 }
 
-// Открыть диалог в табе "Просмотр"
+// ✅ Открыть диалог — с защитой от дубликатов
 function openDialog(userId) {
-    // Проверяем, не открыт ли уже
+    userId = String(userId); // гарантируем строку
+    
     if (!state.openDialogs.includes(userId)) {
         state.openDialogs.push(userId);
         saveOpenDialogs();
     }
 
-    // Переключаемся на таб "Просмотр"
     switchTab('view');
     renderOpenDialogs();
 }
 
 // Закрыть диалог
 function closeDialog(userId) {
-    state.openDialogs = state.openDialogs.filter(id => id !== userId);
+    userId = String(userId);
+    state.openDialogs = state.openDialogs.filter(id => String(id) !== userId);
     saveOpenDialogs();
     renderOpenDialogs();
 }
 
-// Сохранить состояние
 function saveOpenDialogs() {
     localStorage.setItem('openDialogs', JSON.stringify(state.openDialogs));
 }
@@ -107,6 +112,7 @@ function saveOpenDialogs() {
 // Рендер открытых диалогов
 async function renderOpenDialogs() {
     const container = document.getElementById('openDialogsList');
+    if (!container) return;
 
     if (state.openDialogs.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>Выберите диалог из списка, чтобы открыть его здесь</p></div>';
@@ -129,59 +135,28 @@ async function renderOpenDialogs() {
         </div>
     `).join('');
 
-    // Загружаем данные для каждого диалога
-    state.openDialogs.forEach(userId => loadDialogMessages(userId));
-
-    // Обработчики закрытия
-    container.querySelectorAll('.open-dialog__close').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    container.onclick = (e) => {
+        const closeBtn = e.target.closest('.open-dialog__close');
+        if (closeBtn) {
             e.stopPropagation();
-            closeDialog(btn.dataset.userId);
-        });
-    });
+            closeDialog(closeBtn.dataset.userId);
+            return;
+        }
 
-    // Обработчики отправки
-    container.querySelectorAll('.send-btn').forEach(btn => {
-        btn.addEventListener('click', () => sendMessage(btn.dataset.userId));
-    });
+        const sendBtn = e.target.closest('.send-btn');
+        if (sendBtn) {
+            sendMessage(sendBtn.dataset.userId);
+            return;
+        }
+    };
 
-    container.querySelectorAll('.open-dialog__input input').forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage(input.dataset.userId);
-            }
-        });
-    });
-}
+    container.onkeypress = (e) => {
+        if (e.key === 'Enter' && e.target.matches('.open-dialog__input input')) {
+            sendMessage(e.target.dataset.userId);
+        }
+    };
 
-
-function initDialogsView() {
-    // Сбрасываем состояние при новом открытии (опционально)
-    // state.currentFilter = 'all'; 
-
-    // Запускаем загрузку данных
-    loadDialogs(state.currentFilter);
-
-    // Навешиваем обработчики событий на НОВЫЕ элементы DOM
-    document.querySelectorAll('.dialogs-tab').forEach(tab => {
-        // Удаляем старые слушатели, чтобы не дублировались (простой способ - клонировать узел)
-        const newTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(newTab, tab);
-        
-        newTab.addEventListener('click', () => switchTab(newTab.dataset.tab));
-    });
-
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        
-        newBtn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
-            newBtn.classList.add('filter-btn--active');
-            state.currentFilter = newBtn.dataset.filter;
-            loadDialogs(state.currentFilter);
-        });
-    });
+    state.openDialogs.forEach(userId => loadDialogMessages(userId));
 }
 
 // Загрузка сообщений диалога
@@ -217,7 +192,6 @@ function renderMessages(userId, messages) {
         </div>
     `).join('');
 
-    // Прокрутка вниз
     container.scrollTop = container.scrollHeight;
 }
 
@@ -235,15 +209,15 @@ async function sendMessage(recipientId) {
             credentials: 'include',
             body: JSON.stringify({
                 recipientId,
-                encryptedContent: content, // Пока отправляем открытым текстом
+                encryptedContent: content,
                 encryptedKey: '',
             }),
         });
 
         if (response.ok) {
             input.value = '';
-            loadDialogMessages(recipientId); // Перезагружаем сообщения
-            loadDialogs(state.currentFilter); // Обновляем список диалогов
+            loadDialogMessages(recipientId);
+            loadDialogs(state.currentFilter);
         }
     } catch (err) {
         console.error('Ошибка отправки сообщения:', err);
@@ -280,67 +254,45 @@ function formatDate(dateString) {
     }
 }
 
-// Инициализация
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadCurrentUser();
-    await loadDialogs();
+// ✅ Защита от повторной инициализации
+let dialogsInitialized = false;
 
-    // Переключение табов
-    document.querySelectorAll('.dialogs-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-
-    // Фильтры
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
-            btn.classList.add('filter-btn--active');
-            state.currentFilter = btn.dataset.filter;
-            loadDialogs(state.currentFilter);
-        });
-    });
-
-    // Если есть открытые диалоги - показываем их
-    if (state.openDialogs.length > 0) {
-        renderOpenDialogs();
-    }
-
-});
-
-// ... (весь код выше остается без изменений) ...
-
-// Функция инициализации (выносится отдельно для вызова из роутера)
 function initDialogsPage() {
+    if (dialogsInitialized) return;
+    dialogsInitialized = true;
+
     loadCurrentUser();
     loadDialogs(state.currentFilter);
 
-    // Навешиваем обработчики на табы и фильтры
-    document.querySelectorAll('.dialogs-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
+    const tabsContainer = document.querySelector('.dialogs-tabs');
+    if (tabsContainer) {
+        tabsContainer.onclick = (e) => {
+            const tab = e.target.closest('.dialogs-tab');
+            if (tab) switchTab(tab.dataset.tab);
+        };
+    }
 
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
-            btn.classList.add('filter-btn--active');
-            state.currentFilter = btn.dataset.filter;
-            loadDialogs(state.currentFilter);
-        });
-    });
+    const filterContainer = document.querySelector('.dialogs-filter');
+    if (filterContainer) {
+        filterContainer.onclick = (e) => {
+            const btn = e.target.closest('.filter-btn');
+            if (btn) {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
+                btn.classList.add('filter-btn--active');
+                state.currentFilter = btn.dataset.filter;
+                loadDialogs(state.currentFilter);
+            }
+        };
+    }
 
     if (state.openDialogs.length > 0) {
         renderOpenDialogs();
     }
 }
 
-// Инициализация при прямой загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверяем, находимся ли мы на странице диалогов
-    if (window.location.pathname === '/dialogs') {
-        console.log(' Прямая загрузка страницы диалогов, инициализация...');
-        initDialogsPage();
-    }
+    initDialogsPage();
 });
 
-// Экспортируем функцию для использования в spa-router.js
+// Экспортируем для SPA-router
 window.initDialogsView = initDialogsPage;

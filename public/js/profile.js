@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!response.ok) {
             if (response.status === 404) {
-                // ✅ Очищаем скелетоны и показываем текст
                 const clearSkeleton = (id, fallback) => {
                     const el = document.getElementById(id);
                     if (el) {
@@ -108,7 +107,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await response.json();
         userProfile = data.user;
 
-        // ✅ textContent автоматически заменяет innerHTML (включая skeleton span)
         const set = (id, value) => {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
@@ -120,8 +118,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         set('userFamily', userProfile.familyStatus || 'Не указано');
         set('userAbout', userProfile.about || 'Не указано');
         set('userPhone', userProfile.phone || 'Не указан');
+        set('userGender', 'Не указан');
+        set('userEmail', userProfile.email || 'Не указан');
 
-        // Сайт — через innerHTML, т.к. может быть ссылкой
         const userWebsiteEl = document.getElementById('userWebsite');
         if (userWebsiteEl) {
             userWebsiteEl.innerHTML = userProfile.website ? formatWebsite(userProfile.website) : 'Не указан';
@@ -129,7 +128,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.title = `${userProfile.firstName} ${userProfile.lastName} | MySocial`;
 
-        // Инициализируем модалку редактирования
         if (isOwnProfile) {
             initEditModal(userProfile);
         }
@@ -153,7 +151,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     credentials: 'include',
                 });
                 if (response.ok) {
-                    // ✅ Очищаем кэш при выходе
                     localStorage.removeItem('currentUser');
                     window.location.href = '/auth';
                 }
@@ -268,28 +265,33 @@ function initWall(profileUserId, currentUser, isOwnProfile) {
 
     if (!textarea || !submitBtn || !postsContainer) return;
 
+    // ✅ Загружаем с сервера
     loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
 
-    submitBtn.addEventListener('click', () => {
+    submitBtn.addEventListener('click', async () => {
         const text = textarea.value.trim();
         if (!text) return;
 
-        const post = {
-            id: Date.now(),
-            authorId: currentUser.id,
-            authorName: `${currentUser.firstName} ${currentUser.lastName}`,
-            text: text,
-            createdAt: new Date().toISOString(),
-            likes: 0,
-            liked: false,
-            comments: 0,
-            shares: 0,
-        };
+        submitBtn.disabled = true;
 
-        saveWallPost(profileUserId, post);
-        textarea.value = '';
-        textarea.style.height = 'auto';
-        loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
+        try {
+            const response = await fetch(`/api/posts/wall/${profileUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ content: text }),
+            });
+
+            if (response.ok) {
+                textarea.value = '';
+                textarea.style.height = 'auto';
+                loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
+            }
+        } catch (err) {
+            console.error('Ошибка публикации:', err);
+        } finally {
+            submitBtn.disabled = false;
+        }
     });
 
     textarea.addEventListener('input', () => {
@@ -313,20 +315,27 @@ function initWall(profileUserId, currentUser, isOwnProfile) {
     });
 }
 
-function loadWallPosts(profileUserId, container, currentUser, filter = 'all') {
-    const key = `wall_${profileUserId}`;
-    let posts = JSON.parse(localStorage.getItem(key) || '[]');
-
-    if (filter === 'owner') {
-        posts = posts.filter(p => p.authorId === profileUserId);
+// ✅ Загрузка постов с сервера
+async function loadWallPosts(profileUserId, container, currentUser, filter = 'all') {
+    try {
+        const response = await fetch(`/api/posts/wall/${profileUserId}?filter=${filter}`, {
+            credentials: 'include',
+        });
+        if (response.ok) {
+            const data = await response.json();
+            renderWallPosts(data.posts, container, currentUser, profileUserId);
+        }
+    } catch (err) {
+        console.error('Ошибка загрузки записей:', err);
+        container.innerHTML = '<div class="wall__empty"><p>Ошибка загрузки</p></div>';
     }
+}
 
-    if (posts.length === 0) {
+function renderWallPosts(posts, container, currentUser, profileUserId) {
+    if (!posts || posts.length === 0) {
         container.innerHTML = '<div class="wall__empty"><p>Пока нет записей на стене</p></div>';
         return;
     }
-
-    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     container.innerHTML = posts.map(post => `
         <div class="wall__post" data-post-id="${post.id}">
@@ -340,62 +349,22 @@ function loadWallPosts(profileUserId, container, currentUser, filter = 'all') {
                 </div>
                 <div class="wall__post-text">${escapeHtml(post.text)}</div>
                 <div class="wall__post-actions">
-                    <button class="wall__post-action wall__like-btn ${post.liked ? 'wall__post-action--liked' : ''}" data-post-id="${post.id}">
-                        <svg viewBox="0 0 24 24" fill="${post.liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                    <button class="wall__post-action" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
                         <span>${post.likes || 0}</span>
                     </button>
-                    <button class="wall__post-action wall__post-action--comment" data-post-id="${post.id}">
+                    <button class="wall__post-action" disabled>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                         <span>${post.comments || 0}</span>
                     </button>
-                    <button class="wall__post-action wall__post-action--share" data-post-id="${post.id}">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                            <polyline points="16 6 12 2 8 6"/>
-                            <line x1="12" y1="2" x2="12" y2="15"/>
-                        </svg>
-                        <span>${post.shares || 0}</span>
-                    </button>
                 </div>
             </div>
         </div>
     `).join('');
-
-    container.querySelectorAll('.wall__like-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const postId = parseInt(btn.dataset.postId, 10);
-            toggleLike(profileUserId, postId, container, currentUser);
-        });
-    });
-}
-
-function saveWallPost(profileUserId, post) {
-    const key = `wall_${profileUserId}`;
-    const posts = JSON.parse(localStorage.getItem(key) || '[]');
-    posts.push(post);
-    localStorage.setItem(key, JSON.stringify(posts));
-}
-
-function toggleLike(profileUserId, postId, container, currentUser) {
-    const key = `wall_${profileUserId}`;
-    const posts = JSON.parse(localStorage.getItem(key) || '[]');
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
-
-    if (post.liked) {
-        post.likes = Math.max(0, (post.likes || 0) - 1);
-        post.liked = false;
-    } else {
-        post.likes = (post.likes || 0) + 1;
-        post.liked = true;
-    }
-
-    localStorage.setItem(key, JSON.stringify(posts));
-    loadWallPosts(profileUserId, container, currentUser, wallCurrentFilter);
 }
 
 function formatWallDate(dateString) {
