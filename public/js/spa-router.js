@@ -31,6 +31,12 @@ async function loadPageContent(url) {
     try {
         // Запрашиваем HTML-страницу
         const response = await fetch(url);
+
+        if (response.status === 404) {
+            // Если страница не найдена, перенаправляем
+            window.location.href = '/404.html';
+            return;
+        }
         if (!response.ok) throw new Error('Ошибка загрузки');
         
         const html = await response.text();

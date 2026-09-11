@@ -13,7 +13,8 @@ import { websocketHandler } from './plugins/websocket.js';
 import { redis } from './redis/index.js';
 import { pool } from './db/index.js';
 import { usersRoutes } from './routes/users.js';
-import { postsRoutes } from './routes/posts.js'; // ✅ добавить
+import { postsRoutes } from './routes/posts.js';
+import AuthService from './services/auth.service.js'; // Добавляем импорт
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -65,8 +66,7 @@ app.get('/dialogs', async (request, reply) => {
   }
 });
 
-
-// ОБНОВЛЕНИЕ: теперь возвращаем index.html вместо profile.html
+// Обновляем основной маршрут для обработки ID
 app.get('/:id', async (request, reply) => {
   const { id } = request.params as { id: string };
   
@@ -74,7 +74,19 @@ app.get('/:id', async (request, reply) => {
     try {
       // Проверяем аутентификацию вручную
       await request.jwtVerify();
-      return reply.sendFile('index.html');
+      
+      // Проверяем, существует ли пользователь
+      const targetUserId = parseInt(id, 10);
+      const authService = new AuthService(); // Создаем экземпляр
+      
+      try {
+        await authService.getUserById(targetUserId);
+        // Если пользователь существует, показываем профиль
+        return reply.sendFile('index.html');
+      } catch (error) {
+        // Если пользователь не существует, показываем 404
+        return reply.sendFile('404.html');
+      }
     } catch (err) {
       // Если токен невалиден - перенаправляем на страницу авторизации
       return reply.redirect('/auth');
@@ -88,7 +100,7 @@ app.get('/:id', async (request, reply) => {
 await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(messageRoutes, { prefix: '/api/messages' });
 await app.register(usersRoutes, { prefix: '/api/users' });
-await app.register(postsRoutes, { prefix: '/api/posts' }); // 
+await app.register(postsRoutes, { prefix: '/api/posts' });
 
 // 5. Статические файлы (ПОСЛЕ всех специфических маршрутов)
 await app.register(staticFiles, {

@@ -17,6 +17,7 @@
 
 // Импорт страниц
 @use 'pages/auth';
+@use 'pages/errors';
 
 // Импорт адаптивных стилей
 @use 'responsive/mobile';

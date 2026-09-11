@@ -1,0 +1,133 @@
+// public/scss/pages/_error.scss
+@use '../variables' as *;
+
+.error-page {
+  background: $bg-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.error-container {
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.error-card {
+  background: $card-bg;
+  border-radius: $border-radius-lg;
+  box-shadow: $box-shadow;
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.error-icon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($danger-color, 0.1);
+  border-radius: 50%;
+  margin: 0 auto;
+
+  svg {
+    color: $danger-color;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.error-title {
+  font-size: 4rem;
+  font-weight: $font-weight-bold;
+  color: $text-color;
+  margin: 0;
+  line-height: 1;
+}
+
+.error-message {
+  font-size: 1.5rem;
+  font-weight: $font-weight-bold;
+  color: $text-color;
+  margin: 0 0 8px 0;
+}
+
+.error-description {
+  font-size: 1rem;
+  color: $text-secondary;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border: none;
+  border-radius: $border-radius;
+  font-size: 16px;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+
+  &--primary {
+    background: $primary-color;
+    color: white;
+
+    &:hover {
+      background: darken($primary-color, 10%);
+      transform: translateY(-1px);
+    }
+  }
+
+  &--secondary {
+    background: $secondary-color;
+    color: $text-color;
+
+    &:hover {
+      background: darken($secondary-color, 10%);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: $mobile-breakpoint) {
+  .error-card {
+    padding: 32px 24px;
+  }
+  
+  .error-title {
+    font-size: 3rem;
+  }
+  
+  .error-message {
+    font-size: 1.25rem;
+  }
+  
+  .error-actions {
+    .btn {
+      min-width: 100%;
+    }
+  }
+}

@@ -82,26 +82,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const response = await fetch(`/api/users/${targetUserId}`, { credentials: 'include' });
 
+
+// Обновляем обработку ошибки 404
         if (!response.ok) {
             if (response.status === 404) {
-                const clearSkeleton = (id, fallback) => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.textContent = fallback;
-                    }
-                };
-                clearSkeleton('profileName', 'Пользователь не найден');
-                clearSkeleton('userCity', 'Не указан');
-                clearSkeleton('userBirthday', 'Не указана');
-                clearSkeleton('userEmail', 'Не указан');
-                clearSkeleton('userPhone', 'Не указан');
-                clearSkeleton('userWebsite', 'Не указан');
-                clearSkeleton('userFamily', 'Не указано');
-                clearSkeleton('userAbout', 'Не указано');
+                // Перенаправляем на 404 страницу
+                window.location.href = '/404.html';
+                return;
             } else {
                 throw new Error('Ошибка загрузки профиля');
             }
-            return;
         }
 
         const data = await response.json();
