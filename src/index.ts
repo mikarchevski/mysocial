@@ -71,7 +71,14 @@ app.get('/:id', async (request, reply) => {
   const { id } = request.params as { id: string };
   
   if (/^\d+$/.test(id)) {
-    return reply.sendFile('index.html'); // Теперь используем index.html
+    try {
+      // Проверяем аутентификацию вручную
+      await request.jwtVerify();
+      return reply.sendFile('index.html');
+    } catch (err) {
+      // Если токен невалиден - перенаправляем на страницу авторизации
+      return reply.redirect('/auth');
+    }
   }
   
   return reply.status(404).send('Not found');

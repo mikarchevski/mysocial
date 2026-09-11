@@ -218,12 +218,15 @@
 }
 
 .modal {
+    display: flex;
+    flex-direction: column;
+    position: relative;
     background: white;
     border-radius: 8px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
     width: 100%;
     max-width: 480px;
-    max-height: 90vh;
+    max-height: 65vh;
     overflow-y: auto;
 
     &__header {
@@ -231,6 +234,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 20px 24px;
+        width: 100%;
         border-bottom: 1px solid #e7e8ec;
     }
 
@@ -258,6 +262,7 @@
 
     &__form {
         padding: 24px;
+        width: 100%;
         display: flex;
         flex-direction: column;
         gap: 16px;

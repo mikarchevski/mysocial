@@ -1,5 +1,7 @@
+// public/scss/pages/_auth.scss
 @use '../../scss/variables' as *;
 @use 'sass:color';
+// public/scss/pages/_auth.scss
 
 .auth-page {
   background: $bg-color;
@@ -35,7 +37,7 @@
 
   &--active {
     color: $primary-color;
-    font-weight: 600;
+    font-weight: $font-weight-bold;
 
     &::after {
       content: '';
@@ -76,14 +78,14 @@
 }
 
 .auth-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: $card-bg;
+  border-radius: $border-radius-lg;
+  box-shadow: $box-shadow;
   padding: 32px;
 
   &__title {
     font-size: 24px;
-    font-weight: 600;
+    font-weight: $font-weight-bold;
     text-align: center;
     margin-bottom: 24px;
     color: $text-color;
@@ -137,7 +139,7 @@
 
 .form-label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: $font-weight-bold;
   color: $text-color;
 
   &--inline {
@@ -150,14 +152,14 @@
 .form-input {
   padding: 10px 12px;
   border: 1px solid $border-color;
-  border-radius: 6px;
+  border-radius: $border-radius;
   font-size: 15px;
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &:focus {
     outline: none;
     border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba(74, 118, 168, 0.15);
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
   }
 }
 
@@ -172,16 +174,16 @@
   background: $primary-color;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: $border-radius;
   padding: 12px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: $font-weight-bold;
   cursor: pointer;
   transition: background 0.2s;
   margin-top: 8px;
 
   &:hover {
-    background: color.adjust($primary-color, $lightness: -8%);
+    background: darken($primary-color, 8%);
   }
 
   &:active {
@@ -190,11 +192,12 @@
 }
 
 .form-error {
-  color: #e64646;
+  color: $danger-color;
   font-size: 14px;
   text-align: center;
   display: none;
-  background: #ffe6e6;
+  background: lighten($danger-color, 50%);
   padding: 8px;
-  border-radius: 4px;
+  border-radius: $border-radius-sm;
+  margin-top: 8px;
 }

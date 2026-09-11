@@ -1,21 +1,25 @@
-// Используем новую систему модулей (@use)
-@use 'variables' as *;
-@use 'mixins' as *;
+// public/scss/main.scss
 
-// Base styles
+// Импорт переменных
+@use 'variables' as *;
+
+// Импорт базовых стилей
 @use 'base/reset';
 @use 'base/typography';
 
-// Components
-@use 'components/header';
+// Импорт компонентов
 @use 'components/layout';
-@use 'components/profile';
+@use 'components/header';
 @use 'components/side-menu';
 @use 'components/dialogs';
+@use 'components/profile';
 @use 'components/wall';
 
-// Pages
+// Импорт страниц
 @use 'pages/auth';
 
-// Responsive
+// Импорт адаптивных стилей
 @use 'responsive/mobile';
+
+// Глобальные миксины
+@use 'mixins' as *;

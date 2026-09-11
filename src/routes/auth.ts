@@ -37,7 +37,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       if (error.message === 'Пользователь с таким email уже существует') {
         return reply.status(409).send({ error: error.message });
       }
-      throw error;
+      return reply.status(500).send({ error: 'Внутренняя ошибка сервера' });
     }
   });
 
@@ -51,15 +51,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const expiresIn = body.rememberMe ? '30d' : '1d';
       const token = app.jwt.sign({ userId: user.id }, { expiresIn });
       
+      // Исправленная установка куки
       reply.setCookie('token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
         path: '/',
+        httpOnly: true,
+        secure: false, // временно отключено для разработки
+        sameSite: 'lax', // изменено на lax для разработки
         maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
       });
       
-      return { user };
+      return { user, success: true };
     } catch (error: any) {
       return reply.status(401).send({ error: error.message });
     }

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Функция для очистки ошибок
     const clearErrors = () => {
         document.querySelectorAll('.form-error').forEach(el => {
             el.textContent = '';
@@ -26,54 +27,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const showError = (elementId, message) => {
-        const errorElement = document.getElementById(elementId);
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-    };
-
     // Обработка входа
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Очистить предыдущие ошибки
             clearErrors();
-
-            const formData = new FormData(loginForm);
-            const data = {
-                email: formData.get('email'),
-                password: formData.get('password'),
-                rememberMe: formData.get('rememberMe') === 'on'
-            };
-
+            
+            const email = loginForm.querySelector('input[name="email"]').value;
+            const password = loginForm.querySelector('input[name="password"]').value;
+            const rememberMe = loginForm.querySelector('input[name="rememberMe"]');
+            const rememberMeChecked = rememberMe ? rememberMe.checked : false;
+            
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                    credentials: 'include'
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password, 
+                        rememberMe: rememberMeChecked 
+                    }),
                 });
-
-                const result = await response.json();
-
+                
+                const data = await response.json();
+                
                 if (response.ok) {
-                    if (result.user && result.user.id) {
-                        // ✅ Сохраняем пользователя в кэш для мгновенного рендера
-                        localStorage.setItem('currentUser', JSON.stringify(result.user));
-                        window.location.href = `/${result.user.id}`;
-                    } else {
-                        showError('loginError', 'Ошибка: не получен ID пользователя');
-                    }
+                    // Авторизация успешна - перенаправить на главную
+                    window.location.href = '/';
                 } else {
-                    showError('loginError', result.error || 'Ошибка входа');
+                    // Показать сообщение об ошибке
+                    showError(loginForm, data.error || 'Ошибка входа');
                 }
-            } catch (err) {
-                console.error('Ошибка входа:', err);
-                showError('loginError', 'Ошибка сети. Попробуйте позже.');
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(loginForm, 'Ошибка соединения с сервером');
             }
         });
+    }
+
+    // Функция для отображения ошибки
+    function showError(formElement, message) {
+        // Проверить, существует ли уже элемент ошибки
+        let errorElement = formElement.querySelector('.form-error');
+        
+        if (!errorElement) {
+            // Создать элемент ошибки
+            errorElement = document.createElement('div');
+            errorElement.className = 'form-error';
+            errorElement.style.cssText = `
+                background-color: #f8d7da;
+                color: #721c24;
+                padding: 10px;
+                margin-top: 15px;
+                border: 1px solid #f5c6cb;
+                border-radius: 4px;
+                font-size: 14px;
+                text-align: center;
+            `;
+            
+            // Вставить после последнего элемента формы
+            formElement.appendChild(errorElement);
+        }
+        
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
     }
 
     // Обработка регистрации
@@ -96,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Клиентская валидация паролей
             if (data.password !== data.confirmPassword) {
-                showError('registerError', 'Пароли не совпадают');
+                showError(registerForm, 'Пароли не совпадают');
                 return;
             }
 
@@ -112,12 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     alert('Регистрация успешна! Теперь вы можете войти.');
                     document.querySelector('[data-tab="login"]').click();
-                    loginForm.reset();
+                    registerForm.reset();
                 } else {
-                    showError('registerError', result.error || 'Ошибка регистрации');
+                    showError(registerForm, result.error || 'Ошибка регистрации');
                 }
             } catch (err) {
-                showError('registerError', 'Ошибка сети. Попробуйте позже.');
+                showError(registerForm, 'Ошибка сети. Попробуйте позже.');
             }
         });
     }

@@ -4,3 +4,4 @@ dist/
 *.log
 *.sql
 drizzle/
+*-lock.json
