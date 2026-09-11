@@ -56,14 +56,25 @@ async function loadPageContent(url) {
             // Инициализируем скрипты для этой страницы
             initPageScripts(url);
             // Обновляем подсветку меню
-            if (typeof window.highlightActiveMenuLink === 'function') {
-                window.highlightActiveMenuLink();
-            }
+            highlightActiveMenuLink();
         }
     } catch (error) {
         console.error('Ошибка SPA-роутинга:', error);
         mainContent.innerHTML = '<div class="error">Не удалось загрузить раздел</div>';
     }
+}
+
+// Функция для обновления подсветки активной ссылки меню
+function highlightActiveMenuLink() {
+    const currentPath = window.location.pathname;
+    const menuLinks = document.querySelectorAll('.menu__link');
+    
+    menuLinks.forEach(link => {
+        link.classList.remove('menu__link--active');
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('menu__link--active');
+        }
+    });
 }
 
 // Функция для запуска скриптов конкретной страницы
@@ -73,9 +84,28 @@ function initPageScripts(url) {
         // нам нужно вызвать функцию инициализации вручную, 
         // так как DOMContentLoaded уже сработал при первой загрузке сайта.
         if (typeof window.initDialogsView === 'function') {
-            console.log('🔄 SPA-переход на диалоги, инициализация...');
             window.initDialogsView();
         }
+    } else if (url === '/friends') {
+        // Загружаем и выполняем скрипт для страницы друзей
+        if (typeof window.friendsScriptLoaded === 'undefined') {
+            const script = document.createElement('script');
+            script.src = '/js/friends.js';
+            document.head.appendChild(script);
+            window.friendsScriptLoaded = true;
+        }
+    } else if (url === '/') {
+        // Если это главная страница (мой профиль), загружаем profile.js
+        if (typeof window.profileScriptLoaded === 'undefined') {
+            const script = document.createElement('script');
+            script.src = '/js/profile.js';
+            document.head.appendChild(script);
+            window.profileScriptLoaded = true;
+        }
     }
-    // Здесь можно добавить инициализацию для других страниц (например, initProfileView())
+    
+    // Здесь можно добавить инициализацию для других страниц
 }
+
+// Глобальная функция для обновления подсветки меню
+window.highlightActiveMenuLink = highlightActiveMenuLink;

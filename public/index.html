@@ -29,7 +29,10 @@
                             title="Редактировать профиль">Ред.</button>
                     </li>
 
-                    <li class="menu__item"><a href="#" class="menu__link">Мои друзья</a></li>
+                    <li class="menu__item"><a href="/friends" class="menu__link spa-link">Мои друзья
+                                <span class="badge" id="friendRequestsBadge" style="display: none;">0</span>
+
+                    </a></li>
                     <li class="menu__item">
                         <a href="/dialogs" class="menu__link spa-link">
                             Мои сообщения
@@ -45,6 +48,13 @@
                 <div class="avatar-section">
                     <div class="avatar-section__container">
                         <img src="/images/default-avatar.svg" alt="Аватар" class="avatar-section__img" id="userAvatar">
+                    </div>
+                    
+                    <!-- Кнопка "Добавить в друзья" -->
+                    <div class="profile-actions">
+                        <button class="profile-actions__btn" id="addFriendBtn" style="display: none;">
+                            Добавить в друзья
+                        </button>
                     </div>
                 </div>
 
@@ -170,63 +180,66 @@
                         </div>
                     </div>
 
-                    <!-- Стена -->
                     <div class="wall">
-                        <div class="wall__header">
-                            <h2 class="wall__title">Стена</h2>
-                        </div>
+                    <div class="wall__header">
+                        <h2 class="wall__title">Стена</h2>
+                    </div>
 
-                        <div class="wall__new-post" id="wallNewPost">
-                            <div class="wall__new-post-avatar">
-                                <img src="/images/default-avatar.svg" alt="Аватар">
-                            </div>
-                            <div class="wall__new-post-content">
-                                <textarea class="wall__textarea" id="wallTextarea"
-                                    placeholder="Что у Вас нового?"></textarea>
-                                <div class="wall__new-post-footer">
-                                    <div class="wall__attachments">
-                                        <button class="wall__attach-btn" title="Фото">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <rect x="3" y="3" width="18" height="18" rx="2" />
-                                                <circle cx="8.5" cy="8.5" r="1.5" />
-                                                <path d="M21 15l-5-5L5 21" />
-                                            </svg>
-                                        </button>
-                                        <button class="wall__attach-btn" title="Видео">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <polygon points="23 7 16 12 23 17 23 7" />
-                                                <rect x="1" y="5" width="15" height="14" rx="2" />
-                                            </svg>
-                                        </button>
-                                        <button class="wall__attach-btn" title="Аудио">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M9 18V5l12-2v13" />
-                                                <circle cx="6" cy="18" r="3" />
-                                                <circle cx="18" cy="16" r="3" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <button class="wall__submit-btn" id="wallSubmitBtn">Опубликовать</button>
+                    <div class="wall__new-post" id="wallNewPost">
+                        <div class="wall__new-post-avatar">
+                            <img src="/images/default-avatar.svg" alt="Аватар">
+                        </div>
+                        <div class="wall__new-post-content">
+                            <textarea class="wall__textarea" id="wallTextarea"
+                                placeholder="Что у Вас нового?"></textarea>
+
+                            <div class="wall__new-post-footer">
+                                <div class="wall__attachments">
+                                    <button class="wall__attach-btn" title="Фото">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                                            <circle cx="8.5" cy="8.5" r="1.5" />
+                                            <path d="M21 15l-5-5L5 21" />
+                                        </svg>
+                                    </button>
+                                    <button class="wall__attach-btn" title="Видео">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polygon points="23 7 16 12 23 17 23 7" />
+                                            <rect x="1" y="5" width="15" height="14" rx="2" />
+                                        </svg>
+                                    </button>
+                                    <button class="wall__attach-btn" title="Аудио">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M9 18V5l12-2v13" />
+                                            <circle cx="6" cy="18" r="3" />
+                                            <circle cx="18" cy="16" r="3" />
+                                        </svg>
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="wall__filters">
-                            <button class="wall__filter-btn wall__filter-btn--active" data-filter="all">Все
-                                записи</button>
-                            <button class="wall__filter-btn" data-filter="owner">Записи пользователя</button>
-                        </div>
-
-                        <div class="wall__posts" id="wallPosts">
-                            <div class="wall__empty">
-                                <p>Пока нет записей на стене</p>
+                                <button class="wall__submit-btn" id="wallSubmitBtn">Опубликовать</button>
                             </div>
                         </div>
                     </div>
+
+                    <div class="wall__filters">
+                        <button class="wall__filter-btn wall__filter-btn--active" data-filter="all">Все
+                            записи</button>
+                        <button class="wall__filter-btn" data-filter="owner">Записи пользователя</button>
+                    </div>
+
+                    <div class="wall__posts" id="wallPosts">
+                        <div class="wall__empty">
+                            <p>Пока нет записей на стене</p>
+                        </div>
+                    </div>
                 </div>
+                </div>
+
+                <!-- Стена -->
+                
             </div>
 
             <!-- Модальное окно редактирования -->

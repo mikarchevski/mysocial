@@ -47,6 +47,8 @@ function highlightActiveMenuLink() {
     });
 }
 
+
+
 // Функция для обновления бейджа непрочитанных сообщений
 async function updateUnreadBadge() {
     try {
@@ -72,11 +74,33 @@ async function updateUnreadBadge() {
     }
 }
 
+// public/js/sidebar.js
+async function updateFriendRequestsBadge() {
+  try {
+    const response = await fetch('/api/friends/requests/count', { credentials: 'include' });
+    if (response.ok) {
+      const data = await response.json();
+      const badge = document.getElementById('friendRequestsBadge');
+      if (badge) {
+        if (data.count > 0) {
+          badge.textContent = data.count;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Ошибка загрузки количества заявок в друзья:', err);
+  }
+}
+
+
 // Обновляем бейдж при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     highlightActiveMenuLink();
     updateUnreadBadge();
-    
+    updateFriendRequestsBadge();
     // Обновляем каждые 30 секунд (polling)
     setInterval(updateUnreadBadge, 30000);
 });

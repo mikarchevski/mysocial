@@ -29,6 +29,14 @@ export const messages = pgTable('messages', {
 
 // ... existing code ...
 
+export const friendRequests = pgTable('friend_requests', {
+  id: serial('id').primaryKey(),
+  fromUserId: integer('from_user_id').references(() => users.id).notNull(),
+  toUserId: integer('to_user_id').references(() => users.id).notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, accepted, declined
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const posts = pgTable('posts', {
   id: serial('id').primaryKey(),
   authorId: integer('author_id').references(() => users.id).notNull(),

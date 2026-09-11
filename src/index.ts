@@ -1,3 +1,4 @@
+// src/index.ts
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
@@ -15,6 +16,8 @@ import { pool } from './db/index.js';
 import { usersRoutes } from './routes/users.js';
 import { postsRoutes } from './routes/posts.js';
 import AuthService from './services/auth.service.js'; // Добавляем импорт
+import { friendsRoutes } from './routes/friends.js';
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -70,6 +73,11 @@ app.get('/dialogs', async (request, reply) => {
 app.get('/:id', async (request, reply) => {
   const { id } = request.params as { id: string };
   
+  // Добавляем исключения для специальных страниц
+  if (['friends', 'dialogs', 'auth'].includes(id)) {
+    return reply.sendFile(`${id}.html`);
+  }
+  
   if (/^\d+$/.test(id)) {
     try {
       // Проверяем аутентификацию вручную
@@ -101,6 +109,7 @@ await app.register(authRoutes, { prefix: '/api/auth' });
 await app.register(messageRoutes, { prefix: '/api/messages' });
 await app.register(usersRoutes, { prefix: '/api/users' });
 await app.register(postsRoutes, { prefix: '/api/posts' });
+await app.register(friendsRoutes, { prefix: '/api/friends' });
 
 // 5. Статические файлы (ПОСЛЕ всех специфических маршрутов)
 await app.register(staticFiles, {

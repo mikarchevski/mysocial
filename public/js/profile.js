@@ -77,13 +77,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         wallNewPost.style.display = 'none';
     }
 
+    // Показываем/скрываем кнопку "Добавить в друзья"
+    const addFriendBtn = document.getElementById('addFriendBtn');
+    if (addFriendBtn && !isOwnProfile) {
+        addFriendBtn.style.display = 'block';
+    } else if (addFriendBtn) {
+        addFriendBtn.style.display = 'none';
+    }
+
+    // Обработчик кнопки "Добавить в друзья"
+    if (addFriendBtn) {
+        addFriendBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`/api/friends/${targetUserId}`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(data.message || 'Заявка в друзья отправлена!');
+                    addFriendBtn.disabled = true;
+                    addFriendBtn.textContent = 'Заявка отправлена';
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Ошибка при добавлении в друзья');
+                }
+            } catch (err) {
+                console.error('Ошибка при добавлении в друзья:', err);
+                alert('Ошибка сети. Попробуйте позже.');
+            }
+        });
+    }
+
     // Загружаем данные профиля
     let userProfile = null;
     try {
         const response = await fetch(`/api/users/${targetUserId}`, { credentials: 'include' });
 
-
-// Обновляем обработку ошибки 404
+        // Обновляем обработку ошибки 404
         if (!response.ok) {
             if (response.status === 404) {
                 // Перенаправляем на 404 страницу
