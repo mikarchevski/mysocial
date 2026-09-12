@@ -33,6 +33,28 @@ export default class FriendsService {
 
     return request;
   }
+  async getFriendshipStatus(userId1: number, userId2: number) {
+    // Проверяем, являются ли пользователи друзьями
+    const areFriends = await this.areFriends(userId1, userId2);
+    if (areFriends) {
+      return { status: 'friends' as const };
+    }
+
+    // Проверяем исходящую заявку (текущий пользователь -> другой пользователь)
+    const outgoingRequest = await this.getFriendRequest(userId1, userId2);
+    if (outgoingRequest) {
+      return { status: 'request_sent' as const, requestId: outgoingRequest.id };
+    }
+
+    // Проверяем входящую заявку (другой пользователь -> текущий пользователь)
+    const incomingRequest = await this.getFriendRequest(userId2, userId1);
+    if (incomingRequest) {
+      return { status: 'request_received' as const, requestId: incomingRequest.id };
+    }
+
+    // Нет связей
+    return { status: 'none' as const };
+  }
 
   // Принять заявку в друзья
   async acceptFriendRequest(requestId: number, currentUserId: number) {

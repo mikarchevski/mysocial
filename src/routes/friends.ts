@@ -2,6 +2,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import FriendsService from '../services/friends.service.js';
 
+
 const friendsService = new FriendsService();
 
 export const friendsRoutes: FastifyPluginAsync = async (app) => {
@@ -93,6 +94,30 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
       return result;
     } catch (error: any) {
       return reply.status(400).send({ error: error.message });
+    }
+  });
+
+  // Получить статус дружбы с пользователем
+  app.get('/status/:userId', {
+    preValidation: [(app as any).authenticate]
+  }, async (request, reply) => {
+    const currentUserId = (request.user as any).userId;
+    const { userId } = request.params as { userId: string };
+    const targetUserId = parseInt(userId, 10);
+
+    if (isNaN(targetUserId)) {
+      return reply.status(400).send({ error: 'Некорректный ID' });
+    }
+
+    if (currentUserId === targetUserId) {
+      return reply.status(400).send({ error: 'Нельзя проверить статус с самим собой' });
+    }
+
+    try {
+      const status = await friendsService.getFriendshipStatus(currentUserId, targetUserId);
+      return { status };
+    } catch (error: any) {
+      return reply.status(500).send({ error: error.message });
     }
   });
 };

@@ -78,16 +78,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Показываем/скрываем кнопку "Добавить в друзья"
-    const addFriendBtn = document.getElementById('addFriendBtn');
-    if (addFriendBtn && !isOwnProfile) {
-        addFriendBtn.style.display = 'block';
-    } else if (addFriendBtn) {
-        addFriendBtn.style.display = 'none';
-    }
+    // public/js/profile.js
+// Обновляем код кнопки "Добавить в друзья" (вместо существующего обработчика в строках 73-101)
 
-    // Обработчик кнопки "Добавить в друзья"
-    if (addFriendBtn) {
-        addFriendBtn.addEventListener('click', async () => {
+// Показываем/скрываем кнопку "Добавить в друзья"
+const addFriendBtn = document.getElementById('addFriendBtn');
+if (addFriendBtn && !isOwnProfile) {
+    addFriendBtn.style.display = 'block';
+
+    // Функция для обновления состояния кнопки
+    const updateAddFriendButton = (status) => {
+        switch(status) {
+            case 'friends':
+                addFriendBtn.textContent = 'Друзья';
+                addFriendBtn.disabled = true;
+                addFriendBtn.classList.add('profile-actions__btn--disabled'); // если хотим дополнительные стили
+                break;
+            case 'request_sent':
+                addFriendBtn.textContent = 'Заявка отправлена';
+                addFriendBtn.disabled = true;
+                addFriendBtn.classList.add('profile-actions__btn--disabled');
+                break;
+            case 'request_received':
+                addFriendBtn.textContent = 'Принять заявку';
+                addFriendBtn.disabled = false;
+                addFriendBtn.classList.remove('profile-actions__btn--disabled');
+                break;
+            case 'none':
+            default:
+                addFriendBtn.textContent = 'Добавить в друзья';
+                addFriendBtn.disabled = false;
+                addFriendBtn.classList.remove('profile-actions__btn--disabled');
+                break;
+        }
+    };
+
+    // Загружаем статус дружбы при загрузке
+    const loadFriendshipStatus = async () => {
+        try {
+            const response = await fetch(`/api/friends/status/${targetUserId}`, { 
+                credentials: 'include' 
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                updateAddFriendButton(data.status.status);
+            } else {
+                console.error('Ошибка загрузки статуса дружбы');
+            }
+        } catch (err) {
+            console.error('Ошибка при загрузке статуса дружбы:', err);
+        }
+    };
+
+    // Загружаем начальный статус
+    loadFriendshipStatus();
+
+    // Обработчик клика по кнопке
+    addFriendBtn.addEventListener('click', async () => {
+        const currentStatus = addFriendBtn.textContent;
+        
+        if (currentStatus === 'Добавить в друзья') {
             try {
                 const response = await fetch(`/api/friends/${targetUserId}`, {
                     method: 'POST',
@@ -97,8 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response.ok) {
                     const data = await response.json();
                     alert(data.message || 'Заявка в друзья отправлена!');
-                    addFriendBtn.disabled = true;
-                    addFriendBtn.textContent = 'Заявка отправлена';
+                    updateAddFriendButton('request_sent'); // Обновляем состояние кнопки
                 } else {
                     const error = await response.json();
                     alert(error.error || 'Ошибка при добавлении в друзья');
@@ -107,8 +157,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Ошибка при добавлении в друзья:', err);
                 alert('Ошибка сети. Попробуйте позже.');
             }
-        });
-    }
+        } else if (currentStatus === 'Принять заявку') {
+            // Обработка принятия заявки (реализация на ваше усмотрение)
+            console.log('Реализовать принятие заявки');
+        }
+    });
+} else if (addFriendBtn) {
+    addFriendBtn.style.display = 'none';
+}
 
     // Загружаем данные профиля
     let userProfile = null;
