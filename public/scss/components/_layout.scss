@@ -33,7 +33,7 @@
     color: white;
     flex-shrink: 0;
     
-    @media (max-width: $tablet-breakpoint - 1) {
+    @media (max-width: $tablet-breakpoint) {
       width: 100%;
       height: auto;
       position: fixed;
@@ -53,7 +53,7 @@
     padding: $spacer-lg;
     background-color: $bg-color;
     
-    @media (max-width: $tablet-breakpoint - 1) {
+    @media (max-width: $tablet-breakpoint) {
       padding: $spacer-sm;
     }
   }
