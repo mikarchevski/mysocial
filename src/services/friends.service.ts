@@ -1,4 +1,7 @@
 // src/services/friends.service.ts
+// Заменим проблемную часть в методе getFriends
+
+// src/services/friends.service.ts
 import { db } from '../db/index.js';
 import { friendRequests, users } from '../db/schema.js';
 import { eq, and, exists, not, or, sql} from 'drizzle-orm';
@@ -44,14 +47,12 @@ export default class FriendsService {
       throw new Error('Заявка не найдена или доступ запрещен');
     }
 
-    // Обновляем статус заявки
+    // Обновляем статус заявки на 'accepted'
     await db
       .update(friendRequests)
       .set({ status: 'accepted' })
       .where(eq(friendRequests.id, requestId));
 
-    // В будущем можно добавить запись в таблицу друзей
-    // Сейчас просто возвращаем успешный результат
     return { message: 'Заявка принята!' };
   }
 
@@ -115,15 +116,71 @@ export default class FriendsService {
 
   // Получить список друзей
   async getFriends(userId: number) {
-    // В будущем можно реализовать полноценный список друзей
-    // Сейчас возвращаем пустой массив
-    return [];
+    // Получаем список принятых заявок, где пользователь является инициатором или получателем
+    const acceptedRequests = await db
+      .select({
+        fromUserId: friendRequests.fromUserId,
+        toUserId: friendRequests.toUserId,
+      })
+      .from(friendRequests)
+      .where(and(
+        or(
+          eq(friendRequests.fromUserId, userId),
+          eq(friendRequests.toUserId, userId)
+        ),
+        eq(friendRequests.status, 'accepted')
+      ));
+
+    // Получаем ID друзей (если пользователь был инициатором, то друг - получатель и наоборот)
+    const friendIds = acceptedRequests.map(req => 
+      req.fromUserId === userId ? req.toUserId : req.fromUserId
+    );
+
+    if (friendIds.length === 0) {
+      return [];
+    }
+
+    // Получаем информацию о друзьях
+    // Используем правильный способ проверки наличия в массиве с Drizzle ORM
+    const friendDetails = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        city: users.city,
+        phone: users.phone,
+        website: users.website,
+        familyStatus: users.familyStatus,
+        about: users.about,
+      })
+      .from(users)
+      .where(
+        sql`${users.id} = ANY(ARRAY[${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}]::integer[])`
+      );
+
+    return friendDetails;
   }
 
   // Проверить, являются ли пользователи друзьями
   async areFriends(userId1: number, userId2: number) {
-    // Пока возвращаем false, до реализации полноценной системы друзей
-    return false;
+    if (userId1 === userId2) return false;
+
+    const request = await db
+      .select()
+      .from(friendRequests)
+      .where(
+        and(
+          or(
+            and(eq(friendRequests.fromUserId, userId1), eq(friendRequests.toUserId, userId2)),
+            and(eq(friendRequests.fromUserId, userId2), eq(friendRequests.toUserId, userId1))
+          ),
+          eq(friendRequests.status, 'accepted')
+        )
+      )
+      .limit(1);
+
+    return request.length > 0;
   }
 
   // Получить заявку между пользователями

@@ -291,6 +291,6 @@ if (document.readyState === 'loading') {
             if (typeof window.initFriendsPage === 'function') {
                 window.initFriendsPage();
             }
-        }, 0);
+        }, 0); 
     }
 }
