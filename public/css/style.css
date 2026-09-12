@@ -319,17 +319,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .badge {
-  background: #e74c3c;
-  color: white;
-  border-radius: 50%;
-  padding: 2px 6px;
-  font-size: 12px;
-  margin-left: 5px;
-  min-width: 18px;
-  height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #ff3347;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  margin-left: 8px;
+  float: right;
 }
 
 .menu__item {

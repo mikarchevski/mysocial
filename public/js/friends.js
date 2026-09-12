@@ -1,12 +1,19 @@
 // public/js/friends.js
 
-document.addEventListener('DOMContentLoaded', async () => {
+// Функция инициализации страницы друзей
+async function initFriendsPage() {
+    console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДРУЗЕЙ ===');
+    console.log('Document readyState:', document.readyState);
+    
     let currentUser = null;
     
     try {
         const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
+        console.log('Ответ от /api/auth/me:', meResponse.status);
+        
         if (meResponse.ok) {
             const meData = await meResponse.json();
+            console.log('Данные текущего пользователя:', meData);
             currentUser = meData.user;
 
             const currentUsernameEl = document.getElementById('currentUsername');
@@ -18,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) logoutBtn.style.display = 'block';
         } else {
+            console.warn('Пользователь не авторизован, перенаправление на /auth');
             window.location.href = '/auth';
             return;
         }
@@ -28,9 +36,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Инициализация вкладок
+    console.log('Инициализация вкладок...');
     initTabs();
     
     // Загрузка друзей по умолчанию
+    console.log('Загрузка списка друзей по умолчанию...');
     loadFriendsList('friends');
     
     // Обработчик выхода
@@ -49,14 +59,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Ошибка при выходе:', err);
             }
         });
-    };
-});
+    }
+    
+    console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДРУЗЕЙ ===');
+}
 
+// Инициализация вкладок
 function initTabs() {
+    console.log('Инициализация вкладок');
     const filterButtons = document.querySelectorAll('.friends-filter-btn');
     const menuLinks = document.querySelectorAll('.friends-menu__link');
     
     const handleTabChange = (tabType) => {
+        console.log('Переключение вкладки на:', tabType);
+
         // Обновляем активные кнопки фильтров
         filterButtons.forEach(btn => {
             if (btn.dataset.tab === tabType) {
@@ -97,24 +113,31 @@ function initTabs() {
     });
 }
 
+// Загрузка списка друзей/заявок
 async function loadFriendsList(tabType) {
+    console.log('Загрузка списка:', tabType);
     const friendsList = document.getElementById('friendsList');
     
     try {
         if (tabType === 'friends') {
             // Загрузка списка друзей
             const response = await fetch('/api/friends/list', { credentials: 'include' });
+            console.log('Ответ для друзей:', response.status);
             if (response.ok) {
                 const data = await response.json();
+                console.log('Данные друзей:', data);
                 renderFriendsList(data.friends || []);
             } else {
                 friendsList.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки списка друзей</p></div>';
             }
         } else if (tabType === 'requests') {
             // Загрузка заявок в друзья
+            console.log('Запрос заявок...');
             const response = await fetch('/api/friends/requests', { credentials: 'include' });
+            console.log('Ответ для заявок:', response.status);
             if (response.ok) {
                 const data = await response.json();
+                console.log('Данные заявок:', data);
                 renderRequestsList(data.requests || []);
             } else {
                 friendsList.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки заявок в друзья</p></div>';
@@ -126,7 +149,9 @@ async function loadFriendsList(tabType) {
     }
 }
 
+// Рендер списка друзей
 function renderFriendsList(friends) {
+    console.log('Отрисовка списка друзей:', friends);
     const friendsList = document.getElementById('friendsList');
     
     if (!friends || friends.length === 0) {
@@ -151,10 +176,13 @@ function renderFriendsList(friends) {
     `).join('');
 }
 
+// Рендер списка заявок
 function renderRequestsList(requests) {
+    console.log('Отрисовка заявок:', requests);
     const friendsList = document.getElementById('friendsList');
     
     if (!requests || requests.length === 0) {
+        console.log('Нет заявок для отображения');
         friendsList.innerHTML = '<div class="friends-list__empty"><p>Нет заявок в друзья</p></div>';
         return;
     }
@@ -162,7 +190,7 @@ function renderRequestsList(requests) {
     friendsList.innerHTML = requests.map(request => `
         <div class="request-item">
             <div class="request-item__avatar">
-                <img src="/images/default-avatar.svg" alt="${request.firstName} ${request.lastName}">
+                <img src="/images/default-avatar.svg" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
             </div>
             <div class="request-item__info">
                 <div class="request-item__name">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</div>
@@ -176,15 +204,17 @@ function renderRequestsList(requests) {
     `).join('');
 }
 
+// Экранирование HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-async function acceptRequest(userId, button) {
+// Принятие заявки в друзья
+async function acceptRequest(requestId, button) {
     try {
-        const response = await fetch(`/api/friends/accept/${userId}`, {
+        const response = await fetch(`/api/friends/accept/${requestId}`, {
             method: 'POST',
             credentials: 'include',
         });
@@ -192,8 +222,12 @@ async function acceptRequest(userId, button) {
         if (response.ok) {
             const data = await response.json();
             alert(data.message || 'Заявка принята!');
-            // Обновляем список
+            // Обновляем список заявок
             loadFriendsList('requests');
+            // Обновляем счетчик заявок в бейдже
+            if (window.updateFriendRequestsBadge) {
+                window.updateFriendRequestsBadge();
+            }
         } else {
             const error = await response.json();
             alert(error.error || 'Ошибка при принятии заявки');
@@ -204,9 +238,10 @@ async function acceptRequest(userId, button) {
     }
 }
 
-async function declineRequest(userId, button) {
+// Отклонение заявки в друзья
+async function declineRequest(requestId, button) {
     try {
-        const response = await fetch(`/api/friends/decline/${userId}`, {
+        const response = await fetch(`/api/friends/decline/${requestId}`, {
             method: 'POST',
             credentials: 'include',
         });
@@ -214,8 +249,12 @@ async function declineRequest(userId, button) {
         if (response.ok) {
             const data = await response.json();
             alert(data.message || 'Заявка отклонена!');
-            // Обновляем список
+            // Обновляем список заявок
             loadFriendsList('requests');
+            // Обновляем счетчик заявок в бейдже
+            if (window.updateFriendRequestsBadge) {
+                window.updateFriendRequestsBadge();
+            }
         } else {
             const error = await response.json();
             alert(error.error || 'Ошибка при отклонении заявки');
@@ -226,7 +265,32 @@ async function declineRequest(userId, button) {
     }
 }
 
+// Отправка сообщения
 function sendMessage(userId) {
     // Перенаправляем на диалог с пользователем
     window.location.href = `/dialogs#/dialog/${userId}`;
+}
+
+// ГЛОБАЛЬНАЯ РЕГИСТРАЦИЯ ФУНКЦИИ - ОСНОВНОЕ ИСПРАВЛЕНИЕ
+window.initFriendsPage = initFriendsPage;
+
+// Запускаем инициализацию при загрузке DOM, если это первая загрузка страницы
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
+            if (typeof window.initFriendsPage === 'function') {
+                window.initFriendsPage();
+            }
+        }
+    });
+} else {
+    // Если документ уже загружен, проверяем URL и запускаем при необходимости
+    if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
+        // Используем setTimeout для обеспечения завершения загрузки DOM
+        setTimeout(function() {
+            if (typeof window.initFriendsPage === 'function') {
+                window.initFriendsPage();
+            }
+        }, 0);
+    }
 }

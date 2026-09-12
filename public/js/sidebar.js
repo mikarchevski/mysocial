@@ -29,6 +29,9 @@ async function updateUnreadBadge() {
 // public/js/sidebar.js
 
 // Подсветка активного пункта меню
+// public/js/sidebar.js
+
+// Подсветка активного пункта меню
 function highlightActiveMenuLink() {
     const path = window.location.pathname;
     
@@ -43,9 +46,14 @@ function highlightActiveMenuLink() {
         } else if (href === '/dialogs' && (path === '/dialogs' || path.startsWith('/dialog'))) {
             // Диалоги
             link.classList.add('menu__link--active');
+        } else if (href === '/friends' && path === '/friends') {
+            // Друзья
+            link.classList.add('menu__link--active');
         }
     });
 }
+
+// Остальной код файла остается без изменений...
 
 
 

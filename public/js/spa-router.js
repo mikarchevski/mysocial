@@ -21,6 +21,7 @@ window.addEventListener('popstate', () => {
 });
 
 // Функция загрузки и вставки контента
+// Функция загрузки и вставки контента
 async function loadPageContent(url) {
     const mainContent = document.getElementById('main-content');
     if (!mainContent) return;
@@ -31,7 +32,6 @@ async function loadPageContent(url) {
     try {
         // Запрашиваем HTML-страницу
         const response = await fetch(url);
-
         if (response.status === 404) {
             // Если страница не найдена, перенаправляем
             window.location.href = '/404.html';
@@ -53,10 +53,11 @@ async function loadPageContent(url) {
             mainContent.innerHTML = '';
             mainContent.appendChild(newContent);
             
+            // Обновляем подсветку активного пункта меню
+            highlightActiveMenuLink();
+            
             // Инициализируем скрипты для этой страницы
             initPageScripts(url);
-            // Обновляем подсветку меню
-            highlightActiveMenuLink();
         }
     } catch (error) {
         console.error('Ошибка SPA-роутинга:', error);
@@ -65,17 +66,27 @@ async function loadPageContent(url) {
 }
 
 // Функция для обновления подсветки активной ссылки меню
+// public/js/spa-router.js
+
+// Функция для обновления подсветки активной ссылки меню
 function highlightActiveMenuLink() {
     const currentPath = window.location.pathname;
     const menuLinks = document.querySelectorAll('.menu__link');
     
     menuLinks.forEach(link => {
         link.classList.remove('menu__link--active');
-        if (link.getAttribute('href') === currentPath) {
+        
+        // Проверяем точное совпадение или частичное для специфичных случаев
+        const href = link.getAttribute('href');
+        if (href === currentPath || 
+            (href === '/friends' && currentPath === '/friends') ||
+            (href === '/' && currentPath.match(/^\/\d+$/))) {
             link.classList.add('menu__link--active');
         }
     });
 }
+
+// Остальная часть файла остается без изменений...
 
 // Функция для запуска скриптов конкретной страницы
 function initPageScripts(url) {
@@ -88,11 +99,17 @@ function initPageScripts(url) {
         }
     } else if (url === '/friends') {
         // Загружаем и выполняем скрипт для страницы друзей
-        if (typeof window.friendsScriptLoaded === 'undefined') {
-            const script = document.createElement('script');
-            script.src = '/js/friends.js';
-            document.head.appendChild(script);
-            window.friendsScriptLoaded = true;
+        // if (typeof window.friendsScriptLoaded === 'undefined') {
+        //     const script = document.createElement('script');
+        //     script.src = '/js/friends.js';
+        //     document.head.appendChild(script);
+        //     window.friendsScriptLoaded = true;
+        // }
+        if (typeof window.initFriendsPage === 'function') {
+            console.log('Вызов initFriendsPage из spa-router');
+            window.initFriendsPage();
+        } else {
+            console.warn('Функция initFriendsPage не найдена');
         }
     } else if (url === '/') {
         // Если это главная страница (мой профиль), загружаем profile.js
