@@ -89,40 +89,51 @@ function highlightActiveMenuLink() {
 // Остальная часть файла остается без изменений...
 
 // Функция для запуска скриптов конкретной страницы
+// In spa-router.js, modify the initPageScripts function to properly load the friends script
+// Update this function in spa-router.js around line 90-120
+// В файле public/js/spa-router.js, замените функцию initPageScripts следующей реализацией:
 function initPageScripts(url) {
     if (url === '/dialogs' || url.startsWith('/dialog/')) {
-        // Если у вас логика диалогов была в dialogs.js, 
-        // нам нужно вызвать функцию инициализации вручную, 
-        // так как DOMContentLoaded уже сработал при первой загрузке сайта.
         if (typeof window.initDialogsView === 'function') {
             window.initDialogsView();
         }
     } else if (url === '/friends') {
-        // Загружаем и выполняем скрипт для страницы друзей
-        // if (typeof window.friendsScriptLoaded === 'undefined') {
-        //     const script = document.createElement('script');
-        //     script.src = '/js/friends.js';
-        //     document.head.appendChild(script);
-        //     window.friendsScriptLoaded = true;
-        // }
+        // Проверяем, загружен ли скрипт friends.js
         if (typeof window.initFriendsPage === 'function') {
             console.log('Вызов initFriendsPage из spa-router');
             window.initFriendsPage();
         } else {
-            console.warn('Функция initFriendsPage не найдена');
+            // Если функция не найдена, динамически загружаем скрипт
+            console.warn('Функция initFriendsPage не найдена, загружаем скрипт...');
+            
+            // Создаем элемент script для загрузки friends.js
+            const script = document.createElement('script');
+            script.src = '/js/friends.js';
+            script.async = false; // Убедимся, что скрипт выполнится перед продолжением
+            
+            script.onload = function() {
+                console.log('Скрипт friends.js загружен');
+                // После загрузки скрипта вызываем инициализацию
+                if (typeof window.initFriendsPage === 'function') {
+                    console.log('Вызов initFriendsPage после загрузки скрипта');
+                    window.initFriendsPage();
+                } else {
+                    console.error('Функция initFriendsPage по-прежнему не найдена');
+                }
+            };
+            
+            script.onerror = function() {
+                console.error('Ошибка загрузки скрипта friends.js');
+            };
+            
+            document.head.appendChild(script);
         }
     } else if (url === '/') {
-        // Если это главная страница (мой профиль), загружаем profile.js
-        if (typeof window.profileScriptLoaded === 'undefined') {
-            const script = document.createElement('script');
-            script.src = '/js/profile.js';
-            document.head.appendChild(script);
-            window.profileScriptLoaded = true;
+        if (typeof window.initProfilePage === 'function') {
+            window.initProfilePage();
         }
     }
-    
     // Здесь можно добавить инициализацию для других страниц
 }
-
 // Глобальная функция для обновления подсветки меню
 window.highlightActiveMenuLink = highlightActiveMenuLink;
