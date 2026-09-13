@@ -8,9 +8,9 @@ function getProfileMode() {
     if (match) {
         const userId = match[1];
         // Проверяем, является ли это нашим профилем
-        return { type: 'other', userId: userId }; // Пока считаем все профили "чужими", будет обновлено ниже
+        return { type: 'other', userId: userId };
     }
-    return { type: 'me', userId: 'me' }; // Свой профиль
+    return { type: 'me', userId: 'me' };
 }
 
 // Функция получения ID целевого пользователя
@@ -75,6 +75,7 @@ function setText(id, text) {
     }
 }
 
+// Загрузка данных профиля
 // Загрузка данных профиля
 async function loadProfileData() {
     // Определяем ID пользователя из URL
@@ -186,6 +187,20 @@ async function loadProfileData() {
             editBtn.style.display = isMyProfile ? 'block' : 'none';
         }
 
+        // Логика для кнопки "Добавить в друзья"
+        // Логика для кнопки "Добавить в друзья"
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn) {
+            if (isMyProfile) {
+                // Не показываем кнопку "Добавить в друзья" для своего профиля
+                addFriendBtn.style.display = 'none';
+            } else {
+                // Для чужого профиля проверяем статус дружбы
+                addFriendBtn.style.display = 'block'; // Убедимся, что кнопка видима перед проверкой статуса
+                await checkFriendshipStatus(userId, addFriendBtn);
+            }
+        }
+
         // Загружаем стену пользователя
         await loadWallPosts('all');
 
@@ -200,6 +215,152 @@ async function loadProfileData() {
                 </div>
             </div>
         `;
+    }
+}
+// Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
+async function checkFriendshipStatus(userId, button) {
+    try {
+        const response = await fetch(`/api/friends/status/${userId}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error('Ошибка проверки статуса дружбы:', response.statusText);
+            button.style.display = 'none';
+            return;
+        }
+
+        const data = await response.json();
+        const status = data.status;
+
+        // Убираем все существующие обработчики, чтобы избежать дублирования
+        button.onclick = null;
+
+        switch (status) {
+            case 'friends':
+                // Если уже друзья, можно добавить кнопку "Удалить из друзей" или не показывать ничего
+                button.textContent = 'Друзья';
+                button.disabled = true;
+                button.classList.add('profile-actions__btn--disabled'); // если хотим дополнительные стили
+                button.style.display = 'block';
+                break;
+            case 'request_sent':
+                // Если запрос отправлен, можно показать соответствующий статус
+                button.textContent = 'Заявка отправлена';
+                button.disabled = true;
+                button.classList.add('profile-actions__btn--disabled');
+                button.style.display = 'block';
+                break;
+            case 'request_received':
+                // Если получен запрос, можно показать кнопки "Принять/Отклонить"
+                button.textContent = 'Принять заявку';
+                button.disabled = false;
+                button.classList.remove('profile-actions__btn--disabled');
+                button.style.display = 'block';
+                button.onclick = () => acceptFriendRequest(userId, button);
+                break;
+            case 'none':
+                // Показываем кнопку "Добавить в друзья"
+                button.textContent = 'Добавить в друзья';
+                button.disabled = false;
+                button.classList.remove('profile-actions__btn--disabled');
+                button.style.display = 'block';
+                button.onclick = () => sendFriendRequest(userId, button);
+                break;
+        }
+    } catch (error) {
+        console.error('Ошибка проверки статуса дружбы:', error);
+        button.style.display = 'none';
+    }
+}
+
+// Принятие заявки в друзья
+// Принятие заявки в друзья
+async function acceptFriendRequest(userId, button) {
+    try {
+        button.disabled = true;
+        button.textContent = 'Принимается...';
+
+        // Сначала нужно получить ID заявки, для этого нужно запросить список заявок
+        const requestsResponse = await fetch('/api/friends/requests', {
+            credentials: 'include'
+        });
+
+        if (!requestsResponse.ok) {
+            throw new Error('Не удалось получить список заявок');
+        }
+
+        const requestsData = await requestsResponse.json();
+        const request = requestsData.requests.find(r => r.fromUserId === userId);
+
+        if (!request) {
+            throw new Error('Заявка не найдена');
+        }
+
+        const response = await fetch(`/api/friends/accept/${request.id}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Не удалось принять заявку');
+        }
+
+        const data = await response.json();
+        console.log(data.message);
+
+        // Обновляем состояние кнопки
+        button.textContent = 'Друзья';
+        button.disabled = true;
+        button.classList.add('profile-actions__btn--disabled');
+
+        // Обновляем счётчики в сайдбаре
+        if (window.updateFriendRequestsBadge) {
+            window.updateFriendRequestsBadge();
+        }
+
+    } catch (error) {
+        console.error('Ошибка принятия заявки в друзья:', error);
+        button.disabled = false;
+        button.textContent = 'Принять заявку';
+        button.classList.remove('profile-actions__btn--disabled');
+        alert('Не удалось принять заявку в друзья: ' + error.message);
+    }
+}
+
+// Отправка запроса в друзья
+// Отправка запроса в друзья
+async function sendFriendRequest(userId, button) {
+    try {
+        button.disabled = true;
+        button.textContent = 'Отправляется...';
+
+        const response = await fetch(`/api/friends/${userId}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Не удалось отправить запрос');
+        }
+
+        const data = await response.json();
+        console.log(data.message);
+
+        // Обновляем состояние кнопки
+        button.textContent = 'Заявка отправлена';
+        button.disabled = true;
+        button.classList.add('profile-actions__btn--disabled');
+
+    } catch (error) {
+        console.error('Ошибка отправки запроса в друзья:', error);
+        button.disabled = false;
+        button.textContent = 'Добавить в друзья';
+        button.classList.remove('profile-actions__btn--disabled');
+        alert('Не удалось отправить запрос в друзья: ' + error.message);
     }
 }
 
