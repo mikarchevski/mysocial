@@ -133,7 +133,6 @@ async function loadCurrentUser() {
 }
 
 // Загрузка списка диалогов
-// Загрузка списка диалогов
 async function loadDialogs(filter = 'all') {
     try {
         const response = await fetch(`/api/messages/dialogs?filter=${filter}`, {
@@ -194,21 +193,20 @@ function renderDialogsList(dialogs) {
 
 // ✅ Открыть диалог — с защитой от дубликатов
 function openDialog(userId) {
-    userId = String(userId); // гарантируем строку
+    userId = String(userId); // guarantee string
 
     if (!state.openDialogs.includes(userId)) {
         state.openDialogs.push(userId);
         saveOpenDialogs();
     }
 
-    // Устанавливаем этот диалог как активный
+    // Set this dialog as active
     state.activeDialog = userId;
 
     switchTab('view');
-    renderOpenDialogs();
+    renderOpenDialogs(); // This should now be awaited if called from an async context
 }
 
-// Закрыть диалог
 // Закрыть диалог
 function closeDialog(userId) {
     userId = String(userId);
@@ -232,13 +230,6 @@ function saveOpenDialogs() {
 }
 
 // Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
-// Рендер открытых диалогов
 async function renderOpenDialogs() {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
@@ -248,24 +239,24 @@ async function renderOpenDialogs() {
         return;
     }
 
-    // Получаем имена пользователей для всех диалогов
+    // Получаем имена пользователей для всех диалогов (await them all)
     const userNames = {};
     for (const userId of state.openDialogs) {
         userNames[userId] = await getUserNameById(userId);
     }
 
-    // Создаем контейнер для списка доступных диалогов
+
+// Создаем контейнер для списка доступных диалогов
     const dialogsHeader = document.createElement('div');
     dialogsHeader.className = 'dialogs-header-detail';
     dialogsHeader.innerHTML = `
         <div class="dialogs-list-detail">
             ${state.openDialogs.map(userId => `
                 <div class="dialog-tab ${state.activeDialog === userId ? 'dialog-tab--active' : ''}" 
-                     data-user-id="${userId}" 
-                     onmouseover="this.querySelector('.dialog-tab-close').style.opacity = '1';"
-                     onmouseout="this.querySelector('.dialog-tab-close').style.opacity = '0';">
+                    data-user-id="${userId}">
                     <span class="dialog-tab-name">${userNames[userId]}</span>
-                    <button class="dialog-tab-close" data-user-id="${userId}" style="opacity: 0;">×</button>
+                    <button class="dialog-tab-close ${state.activeDialog === userId ? 'dialog-tab-close--visible' : ''}" 
+                            data-user-id="${userId}">×</button>
                 </div>
             `).join('')}
         </div>
@@ -281,7 +272,7 @@ async function renderOpenDialogs() {
                 </div>
                 <div class="open-dialog__input">
                     <input type="text" class="form-input" placeholder="Введите сообщение..." data-user-id="${state.activeDialog}">
-                    <button class="send-btn" data-user-id="${state.activeDialog}">Отправить</button>
+                    <button class="send-btn" data-user-id="${state.activeDialog}" type="button">Отправить</button>
                 </div>
             </div>
         `;
@@ -295,7 +286,7 @@ async function renderOpenDialogs() {
                 </div>
                 <div class="open-dialog__input">
                     <input type="text" class="form-input" placeholder="Введите сообщение..." data-user-id="${state.activeDialog}">
-                    <button class="send-btn" data-user-id="${state.activeDialog}">Отправить</button>
+                    <button class="send-btn" data-user-id="${state.activeDialog}" type="button">Отправить</button>
                 </div>
             </div>
         `;
@@ -304,58 +295,52 @@ async function renderOpenDialogs() {
     container.innerHTML = dialogsHeader.outerHTML + activeDialogContent;
 
     // Обработчики событий
-    // In the renderOpenDialogs function, modify the event handling section
-container.onclick = (e) => {
-    // Handle close button clicks first (before other handlers)
-    const dialogTabCloseBtn = e.target.closest('.dialog-tab-close');
-    if (dialogTabCloseBtn) {
-        e.stopPropagation(); // Prevent event bubbling
-        const userId = dialogTabCloseBtn.dataset.userId;
-        closeDialog(userId);
-        return; // Exit early to prevent other handlers from running
-    }
+    container.onclick = (e) => {
+        // Handle close button clicks first (before other handlers)
+        const dialogTabCloseBtn = e.target.closest('.dialog-tab-close');
+        if (dialogTabCloseBtn) {
+            e.stopPropagation(); // Prevent event bubbling
+            const userId = dialogTabCloseBtn.dataset.userId;
+            closeDialog(userId);
+            return; // Exit early to prevent other handlers from running
+        }
 
-    // Handle dialog tab clicks
-    const dialogTab = e.target.closest('.dialog-tab');
-    if (dialogTab) {
-        const userId = dialogTab.dataset.userId;
-        setActiveDialog(userId);
-        return;
-    }
+        // Handle dialog tab clicks
+        const dialogTab = e.target.closest('.dialog-tab');
+        if (dialogTab) {
+            const userId = dialogTab.dataset.userId;
+            setActiveDialog(userId);
+            return;
+        }
 
-    // Handle send button clicks
-    const sendBtn = e.target.closest('.send-btn');
-    if (sendBtn) {
-        e.preventDefault(); // Prevent any potential form submission
-        sendMessage(sendBtn.dataset.userId);
-        return;
-    }
-};
-
+        // Handle send button clicks
+        const sendBtn = e.target.closest('.send-btn');
+        if (sendBtn) {
+            e.preventDefault(); // Prevent any potential form submission
+            sendMessage(sendBtn.dataset.userId);
+            return;
+        }
+    };
 
     container.onkeypress = (e) => {
-    if (e.key === 'Enter' && e.target.matches('.open-dialog__input input')) {
-        e.preventDefault(); // Prevent form submission
-        sendMessage(e.target.dataset.userId);
-    }
-};
+        if (e.key === 'Enter' && e.target.matches('.open-dialog__input input')) {
+            e.preventDefault(); // Prevent form submission
+            sendMessage(e.target.dataset.userId);
+        }
+    };
 
     // Загружаем сообщения для активного диалога
     if (state.activeDialog) {
         loadDialogMessages(state.activeDialog);
     }
 }
+
 // Установка активного диалога
 function setActiveDialog(userId) {
     state.activeDialog = userId;
     renderOpenDialogs();
 }
 
-
-// Временная функция для получения имени пользователя по ID
-// В реальном приложении нужно будет получать это из кэша или API
-// Асинхронная функция для получения имени пользователя по ID
-// Теперь она сначала проверяет кэш, а если нет - делает запрос
 // Асинхронная функция для получения имени пользователя по ID
 // Теперь она сначала проверяет кэш, а если нет - делает запрос
 async function getUserNameById(userId) {
@@ -384,6 +369,7 @@ async function getUserNameById(userId) {
         return `Пользователь ${userId}`;
     }
 }
+
 // Загрузка сообщений диалога
 async function loadDialogMessages(userId) {
     try {
@@ -529,18 +515,16 @@ function escapeHtml(text) {
 
 // === Инициализация страницы диалогов ===
 
-function initDialogsView() {
+async function initDialogsView() {
     // Подключаем WebSocket
     connectWebSocket();
 
-    // Загружаем текущего пользователя
-    loadCurrentUser();
+    // First, load current user data and wait for it to complete
+    await loadCurrentUser();
 
-    // Загружаем список диалогов
-    loadDialogs(state.currentFilter);
-
-    // Рендерим открытые диалоги
-    renderOpenDialogs();
+    // Only then proceed with loading and rendering dialogs
+    await loadDialogs(state.currentFilter);
+    await renderOpenDialogs(); // Make this async too since it uses getUserNameById
 
     // Переключение табов
     document.querySelectorAll('.dialogs-tab').forEach(tab => {
@@ -649,6 +633,6 @@ async function updateUnreadBadge() {
 window.initDialogsView = initDialogsView;
 
 // Инициализация при полной загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    initDialogsView();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initDialogsView();
 });
