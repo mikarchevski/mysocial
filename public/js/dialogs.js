@@ -236,6 +236,9 @@ function saveOpenDialogs() {
 // Рендер открытых диалогов
 // Рендер открытых диалогов
 // Рендер открытых диалогов
+// Рендер открытых диалогов
+// Рендер открытых диалогов
+// Рендер открытых диалогов
 async function renderOpenDialogs() {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
@@ -271,13 +274,8 @@ async function renderOpenDialogs() {
     // Если есть активный диалог, отображаем его содержимое
     let activeDialogContent = '';
     if (state.activeDialog) {
-        const activeUserName = await getUserNameById(state.activeDialog);
         activeDialogContent = `
             <div class="open-dialog" data-user-id="${state.activeDialog}">
-                <div class="open-dialog__header">
-                    <span class="open-dialog__title">${activeUserName}</span>
-                    <button class="open-dialog__close" data-user-id="${state.activeDialog}">×</button>
-                </div>
                 <div class="open-dialog__messages" id="messages-${state.activeDialog}">
                     <div class="loading">Загрузка сообщений...</div>
                 </div>
@@ -290,13 +288,8 @@ async function renderOpenDialogs() {
     } else {
         // Если нет активного диалога, выбираем первый из списка
         state.activeDialog = state.openDialogs[0];
-        const activeUserName = await getUserNameById(state.activeDialog);
         activeDialogContent = `
             <div class="open-dialog" data-user-id="${state.activeDialog}">
-                <div class="open-dialog__header">
-                    <span class="open-dialog__title">${activeUserName}</span>
-                    <button class="open-dialog__close" data-user-id="${state.activeDialog}">×</button>
-                </div>
                 <div class="open-dialog__messages" id="messages-${state.activeDialog}">
                     <div class="loading">Загрузка сообщений...</div>
                 </div>
@@ -311,43 +304,41 @@ async function renderOpenDialogs() {
     container.innerHTML = dialogsHeader.outerHTML + activeDialogContent;
 
     // Обработчики событий
-    container.onclick = (e) => {
-        // Обработка кликов по вкладкам диалогов
-        const dialogTab = e.target.closest('.dialog-tab');
-        if (dialogTab) {
-            const userId = dialogTab.dataset.userId;
-            setActiveDialog(userId);
-            return;
-        }
+    // In the renderOpenDialogs function, modify the event handling section
+container.onclick = (e) => {
+    // Handle close button clicks first (before other handlers)
+    const dialogTabCloseBtn = e.target.closest('.dialog-tab-close');
+    if (dialogTabCloseBtn) {
+        e.stopPropagation(); // Prevent event bubbling
+        const userId = dialogTabCloseBtn.dataset.userId;
+        closeDialog(userId);
+        return; // Exit early to prevent other handlers from running
+    }
 
-        // Обработка закрытия вкладки
-        const closeBtn = e.target.closest('.dialog-tab-close');
-        if (closeBtn) {
-            e.stopPropagation();
-            closeDialog(closeBtn.dataset.userId);
-            return;
-        }
+    // Handle dialog tab clicks
+    const dialogTab = e.target.closest('.dialog-tab');
+    if (dialogTab) {
+        const userId = dialogTab.dataset.userId;
+        setActiveDialog(userId);
+        return;
+    }
 
-        // Обработка закрытия активного диалога
-        const openDialogCloseBtn = e.target.closest('.open-dialog__close');
-        if (openDialogCloseBtn) {
-            e.stopPropagation();
-            closeDialog(openDialogCloseBtn.dataset.userId);
-            return;
-        }
+    // Handle send button clicks
+    const sendBtn = e.target.closest('.send-btn');
+    if (sendBtn) {
+        e.preventDefault(); // Prevent any potential form submission
+        sendMessage(sendBtn.dataset.userId);
+        return;
+    }
+};
 
-        const sendBtn = e.target.closest('.send-btn');
-        if (sendBtn) {
-            sendMessage(sendBtn.dataset.userId);
-            return;
-        }
-    };
 
     container.onkeypress = (e) => {
-        if (e.key === 'Enter' && e.target.matches('.open-dialog__input input')) {
-            sendMessage(e.target.dataset.userId);
-        }
-    };
+    if (e.key === 'Enter' && e.target.matches('.open-dialog__input input')) {
+        e.preventDefault(); // Prevent form submission
+        sendMessage(e.target.dataset.userId);
+    }
+};
 
     // Загружаем сообщения для активного диалога
     if (state.activeDialog) {
