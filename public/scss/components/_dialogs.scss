@@ -1,4 +1,5 @@
 @use '../variables' as *;
+
 // Контейнер диалогов
 .dialogs-container {
   background: white;
@@ -192,6 +193,72 @@
   }
 }
 
+// Заголовок с вкладками диалогов
+.dialogs-header {
+  border-bottom: 1px solid $border-color;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  &-detail{
+    display: flex;
+  }
+}
+
+.dialogs-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+
+  &-detail{
+    display: flex;
+  }
+}
+
+.dialog-tab {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: 16px;
+  padding: 4px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #4a76a8;
+  }
+  
+  &--active {
+    background-color: #5181b8;
+    color: white;
+  }
+  
+  &-name {
+    margin-right: 6px;
+    font-size: 14px;
+  }
+  
+  &-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    
+    .dialog-tab:hover & {
+      opacity: 1;
+    }
+  }
+}
+
 // Открытые диалоги
 .open-dialogs-list {
   display: flex;
@@ -271,7 +338,6 @@
   }
 }
 
-// Сообщения
 // Сообщения
 .message {
   max-width: 70%;

@@ -119,7 +119,10 @@ await app.register(staticFiles, {
 
 // 6. WebSocket
 app.register(async function (fastify) {
-  fastify.get('/ws', { websocket: true }, websocketHandler);
+  fastify.get('/ws', { 
+    websocket: true,
+    preValidation: [(fastify as any).authenticate] // Защищаем WebSocket соединение
+  }, websocketHandler);
 });
 
 // 7. Health check

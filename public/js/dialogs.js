@@ -6,7 +6,107 @@ const rawDialogs = JSON.parse(localStorage.getItem('openDialogs') || '[]');
 const state = {
     openDialogs: [...new Set(rawDialogs.map(String))], // уникальные строки
     currentFilter: 'all',
+    activeDialog: null, // добавляем новое свойство для отслеживания активного диалога
+    usersCache: {}, // кэш для информации о пользователях
 };
+
+// WebSocket соединение
+let ws = null;
+let reconnectTimeout = null;
+
+// Подключение к WebSocket
+function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return;
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = function(event) {
+            console.log('WebSocket connected');
+            clearTimeout(reconnectTimeout);
+        };
+
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                
+                switch(data.type) {
+                    case 'new_message':
+                        // Обработка нового сообщения
+                        handleNewMessage(data.data);
+                        break;
+                        
+                    case 'unread_count_change':
+                        // Обновляем счетчик непрочитанных сообщений
+                        updateUnreadBadge();
+                        if (window.updateFriendRequestsBadge) {
+                            window.updateFriendRequestsBadge();
+                        }
+                        break;
+                        
+                    default:
+                        console.log('Unknown WebSocket message type:', data.type);
+                }
+            } catch (err) {
+                console.error('Error parsing WebSocket message:', err);
+            }
+        };
+
+        ws.onclose = function(event) {
+            console.log('WebSocket disconnected, attempting to reconnect...');
+            // Попробуем переподключиться через 3 секунды
+            reconnectTimeout = setTimeout(connectWebSocket, 3000);
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    } catch (err) {
+        console.error('Failed to create WebSocket connection:', err);
+        // Попробуем переподключиться через 3 секунды
+        reconnectTimeout = setTimeout(connectWebSocket, 3000);
+    }
+}
+
+// Обработка нового сообщения
+function handleNewMessage(message) {
+    // Обновляем список диалогов
+    loadDialogs(state.currentFilter);
+    
+    // Если у нас открыт диалог с этим пользователем, добавляем сообщение
+    if (state.openDialogs.includes(String(message.senderId))) {
+        addMessageToChat(message);
+    }
+    
+    // Обновляем счетчик непрочитанных
+    updateUnreadBadge();
+    if (window.updateFriendRequestsBadge) {
+        window.updateFriendRequestsBadge();
+    }
+}
+
+// Функция для добавления сообщения в чат
+function addMessageToChat(message) {
+    const container = document.getElementById(`messages-${message.senderId}`);
+    if (!container) return;
+
+    // Правильно определяем тип сообщения (моё или партнёра)
+    const isOwnMessage = message.senderId === window.currentUserId;
+    const messageElement = document.createElement('div');
+    messageElement.className = `message message--${isOwnMessage ? 'own' : 'partner'}`;
+    messageElement.innerHTML = `
+        <div class="message__content">${escapeHtml(message.encryptedContent)}</div>
+        <div class="message__time">${formatDate(message.createdAt)}</div>
+    `;
+    
+    container.appendChild(messageElement);
+    container.scrollTop = container.scrollHeight;
+}
 
 // Загрузка данных текущего пользователя
 async function loadCurrentUser() {
@@ -33,6 +133,7 @@ async function loadCurrentUser() {
 }
 
 // Загрузка списка диалогов
+// Загрузка списка диалогов
 async function loadDialogs(filter = 'all') {
     try {
         const response = await fetch(`/api/messages/dialogs?filter=${filter}`, {
@@ -41,6 +142,13 @@ async function loadDialogs(filter = 'all') {
 
         if (response.ok) {
             const data = await response.json();
+            // Сохраняем информацию о пользователях в кэш
+            data.dialogs.forEach(dialog => {
+                state.usersCache[dialog.partnerId] = {
+                    firstName: dialog.firstName,
+                    lastName: dialog.lastName
+                };
+            });
             renderDialogsList(data.dialogs);
         }
     } catch (err) {
@@ -93,14 +201,28 @@ function openDialog(userId) {
         saveOpenDialogs();
     }
 
+    // Устанавливаем этот диалог как активный
+    state.activeDialog = userId;
+
     switchTab('view');
     renderOpenDialogs();
 }
 
 // Закрыть диалог
+// Закрыть диалог
 function closeDialog(userId) {
     userId = String(userId);
     state.openDialogs = state.openDialogs.filter(id => String(id) !== userId);
+    
+    // Если закрываем активный диалог, переключаемся на другой
+    if (state.activeDialog === userId) {
+        if (state.openDialogs.length > 0) {
+            state.activeDialog = state.openDialogs[0]; // выбираем первый доступный
+        } else {
+            state.activeDialog = null; // если больше нет диалогов
+        }
+    }
+    
     saveOpenDialogs();
     renderOpenDialogs();
 }
@@ -109,6 +231,10 @@ function saveOpenDialogs() {
     localStorage.setItem('openDialogs', JSON.stringify(state.openDialogs));
 }
 
+// Рендер открытых диалогов
+// Рендер открытых диалогов
+// Рендер открытых диалогов
+// Рендер открытых диалогов
 // Рендер открытых диалогов
 async function renderOpenDialogs() {
     const container = document.getElementById('openDialogsList');
@@ -119,27 +245,94 @@ async function renderOpenDialogs() {
         return;
     }
 
-    container.innerHTML = state.openDialogs.map(userId => `
-        <div class="open-dialog" data-user-id="${userId}">
-            <div class="open-dialog__header">
-                <span class="open-dialog__title">Загрузка...</span>
-                <button class="open-dialog__close" data-user-id="${userId}">×</button>
-            </div>
-            <div class="open-dialog__messages" id="messages-${userId}">
-                <div class="loading">Загрузка сообщений...</div>
-            </div>
-            <div class="open-dialog__input">
-                <input type="text" class="form-input" placeholder="Введите сообщение..." data-user-id="${userId}">
-                <button class="send-btn" data-user-id="${userId}">Отправить</button>
-            </div>
-        </div>
-    `).join('');
+    // Получаем имена пользователей для всех диалогов
+    const userNames = {};
+    for (const userId of state.openDialogs) {
+        userNames[userId] = await getUserNameById(userId);
+    }
 
+    // Создаем контейнер для списка доступных диалогов
+    const dialogsHeader = document.createElement('div');
+    dialogsHeader.className = 'dialogs-header-detail';
+    dialogsHeader.innerHTML = `
+        <div class="dialogs-list-detail">
+            ${state.openDialogs.map(userId => `
+                <div class="dialog-tab ${state.activeDialog === userId ? 'dialog-tab--active' : ''}" 
+                     data-user-id="${userId}" 
+                     onmouseover="this.querySelector('.dialog-tab-close').style.opacity = '1';"
+                     onmouseout="this.querySelector('.dialog-tab-close').style.opacity = '0';">
+                    <span class="dialog-tab-name">${userNames[userId]}</span>
+                    <button class="dialog-tab-close" data-user-id="${userId}" style="opacity: 0;">×</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    // Если есть активный диалог, отображаем его содержимое
+    let activeDialogContent = '';
+    if (state.activeDialog) {
+        const activeUserName = await getUserNameById(state.activeDialog);
+        activeDialogContent = `
+            <div class="open-dialog" data-user-id="${state.activeDialog}">
+                <div class="open-dialog__header">
+                    <span class="open-dialog__title">${activeUserName}</span>
+                    <button class="open-dialog__close" data-user-id="${state.activeDialog}">×</button>
+                </div>
+                <div class="open-dialog__messages" id="messages-${state.activeDialog}">
+                    <div class="loading">Загрузка сообщений...</div>
+                </div>
+                <div class="open-dialog__input">
+                    <input type="text" class="form-input" placeholder="Введите сообщение..." data-user-id="${state.activeDialog}">
+                    <button class="send-btn" data-user-id="${state.activeDialog}">Отправить</button>
+                </div>
+            </div>
+        `;
+    } else {
+        // Если нет активного диалога, выбираем первый из списка
+        state.activeDialog = state.openDialogs[0];
+        const activeUserName = await getUserNameById(state.activeDialog);
+        activeDialogContent = `
+            <div class="open-dialog" data-user-id="${state.activeDialog}">
+                <div class="open-dialog__header">
+                    <span class="open-dialog__title">${activeUserName}</span>
+                    <button class="open-dialog__close" data-user-id="${state.activeDialog}">×</button>
+                </div>
+                <div class="open-dialog__messages" id="messages-${state.activeDialog}">
+                    <div class="loading">Загрузка сообщений...</div>
+                </div>
+                <div class="open-dialog__input">
+                    <input type="text" class="form-input" placeholder="Введите сообщение..." data-user-id="${state.activeDialog}">
+                    <button class="send-btn" data-user-id="${state.activeDialog}">Отправить</button>
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = dialogsHeader.outerHTML + activeDialogContent;
+
+    // Обработчики событий
     container.onclick = (e) => {
-        const closeBtn = e.target.closest('.open-dialog__close');
+        // Обработка кликов по вкладкам диалогов
+        const dialogTab = e.target.closest('.dialog-tab');
+        if (dialogTab) {
+            const userId = dialogTab.dataset.userId;
+            setActiveDialog(userId);
+            return;
+        }
+
+        // Обработка закрытия вкладки
+        const closeBtn = e.target.closest('.dialog-tab-close');
         if (closeBtn) {
             e.stopPropagation();
             closeDialog(closeBtn.dataset.userId);
+            return;
+        }
+
+        // Обработка закрытия активного диалога
+        const openDialogCloseBtn = e.target.closest('.open-dialog__close');
+        if (openDialogCloseBtn) {
+            e.stopPropagation();
+            closeDialog(openDialogCloseBtn.dataset.userId);
             return;
         }
 
@@ -156,9 +349,50 @@ async function renderOpenDialogs() {
         }
     };
 
-    state.openDialogs.forEach(userId => loadDialogMessages(userId));
+    // Загружаем сообщения для активного диалога
+    if (state.activeDialog) {
+        loadDialogMessages(state.activeDialog);
+    }
+}
+// Установка активного диалога
+function setActiveDialog(userId) {
+    state.activeDialog = userId;
+    renderOpenDialogs();
 }
 
+
+// Временная функция для получения имени пользователя по ID
+// В реальном приложении нужно будет получать это из кэша или API
+// Асинхронная функция для получения имени пользователя по ID
+// Теперь она сначала проверяет кэш, а если нет - делает запрос
+// Асинхронная функция для получения имени пользователя по ID
+// Теперь она сначала проверяет кэш, а если нет - делает запрос
+async function getUserNameById(userId) {
+    // Сначала проверяем кэш
+    if (state.usersCache[userId]) {
+        return `${state.usersCache[userId].firstName} ${state.usersCache[userId].lastName}`;
+    }
+
+    // Если в кэше нет, делаем запрос к серверу
+    try {
+        const response = await fetch(`/api/users/${userId}`, { credentials: 'include' });
+        if (response.ok) {
+            const userData = await response.json();
+            // Сохраняем в кэш
+            state.usersCache[userId] = {
+                firstName: userData.firstName,
+                lastName: userData.lastName
+            };
+            return `${userData.firstName} ${userData.lastName}`;
+        } else {
+            // Возвращаем заполнитель, если запрос не удался
+            return `Пользователь ${userId}`;
+        }
+    } catch (err) {
+        console.error(`Ошибка загрузки данных пользователя ${userId}:`, err);
+        return `Пользователь ${userId}`;
+    }
+}
 // Загрузка сообщений диалога
 async function loadDialogMessages(userId) {
     try {
@@ -185,12 +419,15 @@ function renderMessages(userId, messages) {
         return;
     }
 
-    container.innerHTML = messages.map(msg => `
-        <div class="message message--${msg.senderId === window.currentUserId ? 'own' : 'partner'}">
-            <div class="message__content">${msg.encryptedContent}</div>
-            <div class="message__time">${formatDate(msg.createdAt)}</div>
-        </div>
-    `).join('');
+    container.innerHTML = messages.map(msg => {
+        const isOwnMessage = msg.senderId === window.currentUserId;
+        return `
+            <div class="message message--${isOwnMessage ? 'own' : 'partner'}">
+                <div class="message__content">${msg.encryptedContent}</div>
+                <div class="message__time">${formatDate(msg.createdAt)}</div>
+            </div>
+        `;
+    }).join('');
 
     container.scrollTop = container.scrollHeight;
 }
@@ -202,7 +439,30 @@ async function sendMessage(recipientId) {
 
     if (!content) return;
 
+    // Создаем объект сообщения для предварительного отображения
+    const previewMessage = {
+        id: Date.now(), // временное ID
+        senderId: window.currentUserId,
+        encryptedContent: content,
+        createdAt: new Date().toISOString(),
+        isRead: true // собственное сообщение считается прочитанным
+    };
+
     try {
+        // Добавляем сообщение в UI сразу
+        const container = document.getElementById(`messages-${recipientId}`);
+        if (container) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message message--own';
+            messageElement.innerHTML = `
+                <div class="message__content">${escapeHtml(content)}</div>
+                <div class="message__time">${formatDate(new Date().toISOString())}</div>
+            `;
+            
+            container.appendChild(messageElement);
+            container.scrollTop = container.scrollHeight;
+        }
+
         const response = await fetch('/api/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -216,11 +476,26 @@ async function sendMessage(recipientId) {
 
         if (response.ok) {
             input.value = '';
-            loadDialogMessages(recipientId);
-            loadDialogs(state.currentFilter);
+            // loadDialogs(state.currentFilter); // обновляем список диалогов через WebSocket
+        } else {
+            // Если отправка не удалась, удаляем сообщение из UI
+            if (container) {
+                const lastMessage = container.lastElementChild;
+                if (lastMessage && lastMessage.querySelector('.message__content').textContent === escapeHtml(content)) {
+                    container.removeChild(lastMessage);
+                }
+            }
         }
     } catch (err) {
         console.error('Ошибка отправки сообщения:', err);
+        // Если произошла ошибка, удаляем сообщение из UI
+        const container = document.getElementById(`messages-${recipientId}`);
+        if (container) {
+            const lastMessage = container.lastElementChild;
+            if (lastMessage && lastMessage.querySelector('.message__content').textContent === escapeHtml(content)) {
+                container.removeChild(lastMessage);
+            }
+        }
     }
 }
 
@@ -254,9 +529,19 @@ function formatDate(dateString) {
     }
 }
 
+// Функция экранирования HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // === Инициализация страницы диалогов ===
 
 function initDialogsView() {
+    // Подключаем WebSocket
+    connectWebSocket();
+
     // Загружаем текущего пользователя
     loadCurrentUser();
 
@@ -341,6 +626,31 @@ function initDialogsView() {
                 console.error('Ошибка поиска:', err);
             }
         });
+    }
+}
+
+// Функция для обновления бейджа непрочитанных сообщений
+async function updateUnreadBadge() {
+    try {
+        const response = await fetch('/api/messages/unread-count', {
+            credentials: 'include',
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const badge = document.getElementById('unreadBadge');
+            
+            if (badge) {
+                if (data.unreadDialogs > 0) {
+                    badge.textContent = data.unreadDialogs > 99 ? '99+' : data.unreadDialogs;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки счётчика непрочитанных:', error);
     }
 }
 
