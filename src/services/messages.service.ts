@@ -1,6 +1,7 @@
 // src/services/messages.service.ts
 import MessagesRepository from '../repositories/messages.repository.js';
 import UsersRepository from '../repositories/users.repository.js';
+import { notifyUserOfNewMessage, notifyUserOfUnreadCountChange } from '../plugins/websocket.js';
 
 export default class MessagesService {
   private messagesRepo = new MessagesRepository();
@@ -55,17 +56,36 @@ export default class MessagesService {
     // Помечаем как прочитанные
     await this.messagesRepo.markAsRead(partnerId, currentUserId);
     
+    // Обновляем счетчик непрочитанных сообщений для отправителя
+    const senderUnreadCount = await this.messagesRepo.getUnreadDialogsCount(partnerId);
+    notifyUserOfUnreadCountChange(partnerId, senderUnreadCount);
+    
     return messages;
   }
 
   async sendMessage(senderId: number, recipientId: number, encryptedContent: string, encryptedKey: string = '') {
-    return await this.messagesRepo.create({
+    const message = await this.messagesRepo.create({
       senderId,
       recipientId,
       encryptedContent,
       encryptedKey,
       isRead: false,
     });
+    
+    // Уведомляем получателя о новом сообщении
+    notifyUserOfNewMessage(recipientId, {
+      id: message.id,
+      senderId: message.senderId,
+      encryptedContent: message.encryptedContent,
+      createdAt: message.createdAt,
+      isRead: message.isRead
+    });
+    
+    // Уведомляем отправителя о новых непрочитанных сообщениях (если нужно)
+    const recipientUnreadCount = await this.messagesRepo.getUnreadDialogsCount(recipientId);
+    notifyUserOfUnreadCountChange(recipientId, recipientUnreadCount);
+    
+    return message;
   }
 
   async searchUsers(query: string, currentUserId: number) {
