@@ -1,24 +1,22 @@
 // src/index.ts
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
-import cookie from '@fastify/cookie';
-import websocket from '@fastify/websocket';
-import staticFiles from '@fastify/static';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import { env } from './config/env.js';
-import { authRoutes } from './routes/auth.js';
-import { messageRoutes } from './routes/messages.js';
-import { websocketHandler } from './plugins/websocket.js';
-import { redis } from './redis/index.js';
-import { pool } from './db/index.js';
-import { usersRoutes } from './routes/users.js';
-import { postsRoutes } from './routes/posts.js';
-import AuthService from './services/auth.service.js'; // Добавляем импорт
-import { friendsRoutes } from './routes/friends.js';
-
-
+import Fastify from "fastify";
+import cors from "@fastify/cors";
+import jwt from "@fastify/jwt";
+import cookie from "@fastify/cookie";
+import websocket from "@fastify/websocket";
+import staticFiles from "@fastify/static";
+import * as path from "path";
+import { fileURLToPath } from "url";
+import { env } from "./config/env.js";
+import { authRoutes } from "./routes/auth.js";
+import { messageRoutes } from "./routes/messages.js";
+import { websocketHandler } from "./plugins/websocket.js";
+import { redis } from "./redis/index.js";
+import { pool } from "./db/index.js";
+import { usersRoutes } from "./routes/users.js";
+import { postsRoutes } from "./routes/posts.js";
+import AuthService from "./services/auth.service.js"; // Добавляем импорт
+import { friendsRoutes } from "./routes/friends.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,9 +27,9 @@ const app = Fastify({
 
 // 1. Плагины
 await app.register(cookie);
-await app.register(jwt, { 
-  secret: env.JWT_SECRET, 
-  cookie: { cookieName: 'token', signed: false } 
+await app.register(jwt, {
+  secret: env.JWT_SECRET,
+  cookie: { cookieName: "token", signed: false },
 });
 await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
 await app.register(websocket);
@@ -46,88 +44,91 @@ app.decorate("authenticate", async function (request: any, reply: any) {
 });
 
 // 3. Роуты страниц (ДО staticFiles)
-app.get('/', async (request, reply) => {
+// Изменяем главный маршрут - теперь он просто возвращает index.html
+app.get("/", async (request, reply) => {
   try {
-    // ИСПРАВЛЕНИЕ TS: явное приведение типа, чтобы TS знал про userId
-    const payload = await request.jwtVerify() as { userId: number };
-    return reply.redirect(`/${payload.userId}`); 
+    // Проверяем, авторизован ли пользователь
+    await request.jwtVerify();
+    // Если пользователь авторизован, просто отдаем index.html
+    // SPA-роутинг будет обрабатывать отображение нужной страницы
+    return reply.sendFile("index.html");
   } catch (err) {
-    return reply.redirect('/auth');
+    // Если не авторизован, редиректим на страницу входа
+    return reply.redirect("/auth");
   }
 });
 
-app.get('/auth', async (request, reply) => {
-  return reply.sendFile('auth.html');
+app.get("/auth", async (request, reply) => {
+  return reply.sendFile("auth.html");
 });
 
-app.get('/dialogs', async (request, reply) => {
+app.get("/dialogs", async (request, reply) => {
   try {
     await request.jwtVerify();
-    return reply.sendFile('dialogs.html');
+    return reply.sendFile("dialogs.html");
   } catch (err) {
-    return reply.redirect('/auth');
+    return reply.redirect("/auth");
   }
 });
 
 // Обновляем основной маршрут для обработки ID
-app.get('/:id', async (request, reply) => {
+// В src/index.ts замени блок app.get('/:id', ...) на этот:
+
+app.get("/:id", async (request, reply) => {
   const { id } = request.params as { id: string };
-  
-  // Добавляем исключения для специальных страниц
-  if (['friends', 'dialogs', 'auth'].includes(id)) {
-    return reply.sendFile(`${id}.html`);
+
+  // Страница авторизации остается отдельной
+  if (id === "auth") {
+    return reply.sendFile("auth.html");
   }
-  
-  if (/^\d+$/.test(id)) {
+
+  // Для SPA-маршрутов (друзья, диалоги, профиль по ID) отдаем index.html
+  if (["friends", "dialogs"].includes(id) || /^\d+$/.test(id)) {
     try {
-      // Проверяем аутентификацию вручную
-      await request.jwtVerify();
-      
-      // Проверяем, существует ли пользователь
-      const targetUserId = parseInt(id, 10);
-      const authService = new AuthService(); // Создаем экземпляр
-      
-      try {
-        await authService.getUserById(targetUserId);
-        // Если пользователь существует, показываем профиль
-        return reply.sendFile('index.html');
-      } catch (error) {
-        // Если пользователь не существует, показываем 404
-        return reply.sendFile('404.html');
+      // Если это числовой ID, проверяем существование пользователя
+      if (/^\d+$/.test(id)) {
+        const authService = new AuthService();
+        await authService.getUserById(parseInt(id, 10));
       }
-    } catch (err) {
-      // Если токен невалиден - перенаправляем на страницу авторизации
-      return reply.redirect('/auth');
+      // Отдаем единый layout для SPA
+      return reply.sendFile("index.html");
+    } catch (error) {
+      // Если пользователь не найден или ошибка
+      return reply.sendFile("404.html");
     }
   }
-  
-  return reply.status(404).send('Not found');
+
+  return reply.status(404).send("Not found");
 });
 
 // 4. API Роуты (до staticFiles)
-await app.register(authRoutes, { prefix: '/api/auth' });
-await app.register(messageRoutes, { prefix: '/api/messages' });
-await app.register(usersRoutes, { prefix: '/api/users' });
-await app.register(postsRoutes, { prefix: '/api/posts' });
-await app.register(friendsRoutes, { prefix: '/api/friends' });
+await app.register(authRoutes, { prefix: "/api/auth" });
+await app.register(messageRoutes, { prefix: "/api/messages" });
+await app.register(usersRoutes, { prefix: "/api/users" }); // Здесь будет маршрут /api/users/me
+await app.register(postsRoutes, { prefix: "/api/posts" });
+await app.register(friendsRoutes, { prefix: "/api/friends" });
 
 // 5. Статические файлы (ПОСЛЕ всех специфических маршрутов)
 await app.register(staticFiles, {
-  root: path.join(__dirname, '../public'),
-  prefix: '/',
+  root: path.join(__dirname, "../public"),
+  prefix: "/",
 });
 
 // 6. WebSocket
 app.register(async function (fastify) {
-  fastify.get('/ws', { 
-    websocket: true,
-    preValidation: [(fastify as any).authenticate] // Защищаем WebSocket соединение
-  }, websocketHandler);
+  fastify.get(
+    "/ws",
+    {
+      websocket: true,
+      preValidation: [(fastify as any).authenticate], // Защищаем WebSocket соединение
+    },
+    websocketHandler,
+  );
 });
 
 // 7. Health check
-app.get('/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+app.get("/health", async () => {
+  return { status: "ok", timestamp: new Date().toISOString() };
 });
 
 // 8. Запуск
@@ -142,14 +143,14 @@ const start = async () => {
 };
 
 const shutdown = async () => {
-  console.log('Shutting down...');
+  console.log("Shutting down...");
   await app.close();
   await redis.quit();
   await pool.end();
   process.exit(0);
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 start();

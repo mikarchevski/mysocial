@@ -1,7 +1,7 @@
 // src/services/auth.service.ts
-import UsersRepository from '../repositories/users.repository.js';
-import { hashPassword, verifyPassword } from '../utils/crypto.js';
-import type { NewUser } from '../db/schema.js';
+import UsersRepository from "../repositories/users.repository.js";
+import { hashPassword, verifyPassword } from "../utils/crypto.js";
+import type { NewUser } from "../db/schema.js";
 
 export default class AuthService {
   private usersRepo = new UsersRepository();
@@ -17,7 +17,7 @@ export default class AuthService {
   }) {
     const existingUser = await this.usersRepo.findByEmail(data.email);
     if (existingUser) {
-      throw new Error('Пользователь с таким email уже существует');
+      throw new Error("Пользователь с таким email уже существует");
     }
 
     const passwordHash = await hashPassword(data.password);
@@ -43,12 +43,12 @@ export default class AuthService {
   async login(email: string, password: string) {
     const user = await this.usersRepo.findByEmail(email);
     if (!user) {
-      throw new Error('Неверный email или пароль');
+      throw new Error("Неверный email или пароль");
     }
 
     const valid = await verifyPassword(user.passwordHash, password);
     if (!valid) {
-      throw new Error('Неверный email или пароль');
+      throw new Error("Неверный email или пароль");
     }
 
     return {
@@ -62,9 +62,11 @@ export default class AuthService {
   async getUserById(id: number) {
     const user = await this.usersRepo.findById(id);
     if (!user) {
-      throw new Error('Пользователь не найден');
+      throw new Error("Пользователь не найден");
     }
 
+    // Проверяем, есть ли пол в схеме базы данных
+    // Если поле gender существует в таблице users, добавляем его в возвращаемые данные
     return {
       id: user.id,
       firstName: user.firstName,
@@ -76,19 +78,24 @@ export default class AuthService {
       website: user.website,
       familyStatus: user.familyStatus,
       about: user.about,
+      // Добавляем пол, если оно существует в базе данных
+      gender: user.gender || null, // Предполагаем, что поле может быть в базе данных
     };
   }
 
-  async updateUser(id: number, data: Partial<{
-    city: string;
-    phone: string;
-    website: string;
-    familyStatus: string;
-    about: string;
-  }>) {
+  async updateUser(
+    id: number,
+    data: Partial<{
+      city: string;
+      phone: string;
+      website: string;
+      familyStatus: string;
+      about: string;
+    }>,
+  ) {
     const user = await this.usersRepo.findById(id);
     if (!user) {
-      throw new Error('Пользователь не найден');
+      throw new Error("Пользователь не найден");
     }
 
     const updatedUser = await this.usersRepo.update(id, data);
@@ -104,6 +111,8 @@ export default class AuthService {
       website: updatedUser.website,
       familyStatus: updatedUser.familyStatus,
       about: updatedUser.about,
+      // Добавляем пол, если оно обновляется
+      gender: updatedUser.gender || null,
     };
   }
 }

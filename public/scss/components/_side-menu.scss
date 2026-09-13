@@ -1,5 +1,67 @@
-// Бейдж для непрочитанных сообщений
-.badge {
+// Сайдбар
+.side-menu__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-menu__item {
+  display: flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+.side-menu__link {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-decoration: none;
+  color: #2a5885;
+  font-size: 14px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f5f6f8;
+  }
+
+  &--active {
+    background-color: #e5ebf1;
+    font-weight: 500;
+  }
+}
+
+.side-menu__edit-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+
+  background: none;
+  border: none;
+  color: #2a5885;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  white-space: nowrap;
+
+  &:hover {
+    background: #f5f6f8;
+    color: #1a4a7a;
+  }
+}
+
+.side-menu__badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -11,37 +73,13 @@
   font-size: 12px;
   font-weight: 600;
   border-radius: 10px;
-  margin-left: 8px;
-  float: right;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.menu__item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  
-  .badge {
-    margin-left: auto;
-    float: none;
-  }
-}
-
-// Кнопка "Ред." рядом с "Моя страница"
-.menu__edit-btn {
-  background: none;
-  border: none;
-  color: #2a5885;
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 4px 10px;
-  margin-right: 12px;
-  border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
-  white-space: nowrap;
-
-  &:hover {
-    background: #f5f6f8;
-    color: #1a4a7a;
-  }
+// Лоадер
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: #818c99;
 }

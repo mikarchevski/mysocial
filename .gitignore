@@ -5,3 +5,4 @@ dist/
 *.sql
 drizzle/
 *-lock.json
+docke*
