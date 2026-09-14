@@ -1,0 +1,43 @@
+<!-- public/fragments/edit-modal.html -->
+<div class="modal-overlay" id="editModal" style="display: none;">
+  <div class="modal">
+    <div class="modal__header">
+      <h3 class="modal__title">Редактирование профиля</h3>
+      <button class="modal__close" id="closeEditModal">&times;</button>
+    </div>
+    <form id="editProfileForm" class="modal__form">
+      <div class="form-group">
+        <label class="form-label" for="editCity">Город</label>
+        <input type="text" id="editCity" class="form-input" placeholder="Введите город">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="editPhone">Телефон</label>
+        <input type="tel" id="editPhone" class="form-input" placeholder="+7 (999) 123-45-67">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="editWebsite">Сайт</label>
+        <input type="url" id="editWebsite" class="form-input" placeholder="https://example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="editFamily">Семейное положение</label>
+        <select id="editFamily" class="form-input">
+          <option value="">Не указано</option>
+          <option value="Не женат / Не замужем">Не женат / Не замужем</option>
+          <option value="Встречаюсь">Встречаюсь</option>
+          <option value="Помолвлен(а)">Помолвлен(а)</option>
+          <option value="Женат / Замужем">Женат / Замужем</option>
+          <option value="Всё сложно">Всё сложно</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="editAbout">О себе</label>
+        <textarea id="editAbout" class="form-input" rows="3" placeholder="Расскажите о себе"></textarea>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="modal__btn modal__btn--cancel" id="cancelEdit">Отмена</button>
+        <button type="submit" class="modal__btn modal__btn--save">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>

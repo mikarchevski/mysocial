@@ -546,6 +546,44 @@ async function handleWallSubmit() {
     }
 }
 
+// В файле public/js/profile.js, после строки с closeEditModalFn() добавляем:
+
+// Открытие модального окна редактирования
+function openEditModalFn() {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        // Загружаем текущие данные пользователя для заполнения формы
+        loadUserDataForEditModal();
+        modal.style.display = 'flex';
+    }
+}
+
+async function loadUserDataForEditModal() {
+    try {
+        const response = await fetch('/api/auth/me', {
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Не авторизован');
+        const { user } = await response.json();
+
+        // Заполняем поля данными пользователя
+        document.getElementById('editCity').value = user.city || '';
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editWebsite').value = user.website || '';
+        document.getElementById('editFamily').value = user.familyStatus || '';
+        document.getElementById('editAbout').value = user.about || '';
+    } catch (error) {
+        console.error('Ошибка загрузки данных для модального окна:', error);
+    }
+}
+
+// Также добавим в initializeProfileElements():
+
+// В функции initializeProfileElements() добавляем обработчики:
+
+const editProfileBtn = document.getElementById('editProfileBtn');
+if (editProfileBtn) editProfileBtn.onclick = openEditModalFn;
+
 // Переключение фильтров стены
 function switchWallFilter(filter) {
     document.querySelectorAll('.wall__filter-btn').forEach(btn => {
@@ -557,30 +595,33 @@ function switchWallFilter(filter) {
 }
 
 // Обработка сохранения формы редактирования профиля
-async function handleEditProfileSubmit(e) {
-    e.preventDefault();
+// В функции handleEditProfileSubmit() обновляем начало:
+
+// В файле public/js/profile.js, обновляем функцию handleEditProfileSubmit
+
+// Обработка сохранения формы редактирования профиля
+async function handleEditProfileSubmit(event) {
+    event.preventDefault();
 
     try {
-        // Получаем свой ID для обновления
-        const profileRes = await fetch('/api/auth/me', {
+        // Получаем ID текущего пользователя
+        const response = await fetch('/api/auth/me', {
             credentials: 'include'
         });
-        if (!profileRes.ok) throw new Error('Не авторизован');
-        const { user } = await profileRes.json();
+        if (!response.ok) throw new Error('Не авторизован');
+        const { user } = await response.json();
 
         const data = {
-            city: document.getElementById('editCity')?.value || '',
-            phone: document.getElementById('editPhone')?.value || '',
-            website: document.getElementById('editWebsite')?.value || '',
-            familyStatus: document.getElementById('editFamily')?.value || '',
-            about: document.getElementById('editAbout')?.value || '',
-            // Добавляем пол, если поле существует в форме редактирования
-            gender: document.getElementById('editGender')?.value || undefined
+            city: document.getElementById('editCity').value || undefined,
+            phone: document.getElementById('editPhone').value || undefined,
+            website: document.getElementById('editWebsite').value || undefined,
+            familyStatus: document.getElementById('editFamily').value || undefined,
+            about: document.getElementById('editAbout').value || undefined
         };
 
         // Убираем undefined значения
         Object.keys(data).forEach(key => {
-            if (data[key] === undefined) {
+            if (data[key] === undefined || data[key] === '') {
                 delete data[key];
             }
         });
@@ -594,13 +635,16 @@ async function handleEditProfileSubmit(e) {
             body: JSON.stringify(data)
         });
 
-        if (!res.ok) throw new Error('Не удалось сохранить');
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Ошибка сервера: ${errorText}`);
+        }
 
         closeEditModalFn();
-        await loadProfileData();
+        await loadProfileData(); // Обновляем данные профиля после сохранения
     } catch (error) {
         console.error('Ошибка сохранения:', error);
-        alert('Не удалось сохранить изменения');
+        alert('Не удалось сохранить изменения: ' + error.message);
     }
 }
 
@@ -612,7 +656,6 @@ function closeEditModalFn() {
 
 // Инициализация профиля
 function initProfile() {
-    // Ждем, когда DOM будет готов
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
             initializeProfileElements();
@@ -623,26 +666,44 @@ function initProfile() {
 }
 
 // Вспомогательная функция инициализации элементов
+// В файле public/js/profile.js, полностью переписываем функцию initializeProfileElements()
+
+// Вспомогательная функция инициализации элементов
 function initializeProfileElements() {
-    const wallSubmitBtn = document.getElementById('wallSubmitBtn');
-    if (wallSubmitBtn) wallSubmitBtn.onclick = handleWallSubmit;
+    // Устанавливаем обработчики после небольшой задержки для гарантии загрузки DOM
+    setTimeout(() => {
+        // Обработчики для стен
+        const wallSubmitBtn = document.getElementById('wallSubmitBtn');
+        if (wallSubmitBtn) wallSubmitBtn.onclick = handleWallSubmit;
 
-    const editProfileForm = document.getElementById('editProfileForm');
-    if (editProfileForm) editProfileForm.onsubmit = handleEditProfileSubmit;
+        // Обработчики для формы редактирования
+        const editProfileForm = document.getElementById('editProfileForm');
+        if (editProfileForm) editProfileForm.onsubmit = handleEditProfileSubmit;
 
-    const closeEditModal = document.getElementById('closeEditModal');
-    if (closeEditModal) closeEditModal.onclick = closeEditModalFn;
+        // Обработчики для модального окна
+        const closeEditModal = document.getElementById('closeEditModal');
+        if (closeEditModal) closeEditModal.onclick = closeEditModalFn;
 
-    const cancelEdit = document.getElementById('cancelEdit');
-    if (cancelEdit) cancelEdit.onclick = closeEditModalFn;
+        const cancelEdit = document.getElementById('cancelEdit');
+        if (cancelEdit) cancelEdit.onclick = closeEditModalFn;
 
-    const filterBtns = document.querySelectorAll('.wall__filter-btn');
-    filterBtns.forEach(btn => {
-        btn.onclick = () => switchWallFilter(btn.dataset.filter);
-    });
+        // Обработчики для фильтров стены
+        const filterBtns = document.querySelectorAll('.wall__filter-btn');
+        filterBtns.forEach(btn => {
+            btn.onclick = () => switchWallFilter(btn.dataset.filter);
+        });
 
-    // Загружаем данные профиля после инициализации элементов
-    setTimeout(loadProfileData, 100); // Небольшая задержка для гарантии загрузки DOM
+        // Кнопка редактирования профиля - устанавливаем обработчик отдельно
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        if (editProfileBtn) {
+            // Очищаем предыдущие обработчики и устанавливаем новый
+            editProfileBtn.removeEventListener('click', openEditModalFn);
+            editProfileBtn.addEventListener('click', openEditModalFn);
+        }
+
+        // Загружаем данные профиля
+        loadProfileData();
+    }, 100);
 }
 
 // Экспортируем функцию для использования в других модулях
