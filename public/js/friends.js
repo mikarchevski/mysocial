@@ -2,22 +2,117 @@
 
 let currentFriendsTab = 'friends';
 
-function initFriends() {
-    const filterBtns = document.querySelectorAll('.friends-filter-btn');
-    filterBtns.forEach(btn => {
-        btn.onclick = () => switchFriendsTab(btn.dataset.tab);
-    });
+async function initFriends() {
+    console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДРУЗЕЙ ===');
+    console.log('Document readyState:', document.readyState);
+
+    let currentUser = null;
+
+    try {
+        const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
+        console.log('Ответ от /api/auth/me:', meResponse.status);
+
+        if (meResponse.ok) {
+            const meData = await meResponse.json();
+            console.log('Данные текущего пользователя:', meData);
+            currentUser = meData.user;
+
+            const currentUsernameEl = document.getElementById('currentUsername');
+            if (currentUsernameEl) {
+                currentUsernameEl.className = '';
+                currentUsernameEl.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+            }
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.style.display = 'block';
+        } else {
+            console.warn('Пользователь не авторизован, перенаправление на /auth');
+            window.location.href = '/auth';
+            return;
+        }
+    } catch (err) {
+        console.error('Error fetching current user data:', err);
+        window.location.href = '/auth';
+        return;
+    }
+
+    // Инициализация вкладок
+    console.log('Инициализация вкладок...');
+    initTabs();
+
+    // Загрузка друзей по умолчанию
+    console.log('Загрузка списка друзей по умолчанию...');
     loadFriendsData(currentFriendsTab);
+
+    // Обработчик выхода
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                if (response.ok) {
+                    window.location.href = '/auth';
+                }
+            } catch (err) {
+                console.error('Ошибка при выходе:', err);
+            }
+        });
+    }
+
+    console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДРУЗЕЙ ===');
 }
 
-function switchFriendsTab(tab) {
-    currentFriendsTab = tab;
-    document.querySelectorAll('.friends-filter-btn').forEach(btn => {
-        btn.classList.remove('friends-filter-btn--active');
+// Инициализация вкладок
+function initTabs() {
+    console.log('Инициализация вкладок');
+    const filterButtons = document.querySelectorAll('.friends-filter-btn');
+    const menuLinks = document.querySelectorAll('.friends-menu__link');
+
+    const handleTabChange = (tabType) => {
+        console.log('Переключение вкладки на:', tabType);
+        currentFriendsTab = tabType;
+
+        // Обновляем активные кнопки фильтров
+        filterButtons.forEach(btn => {
+            if (btn.dataset.tab === tabType) {
+                btn.classList.add('friends-filter-btn--active');
+            } else {
+                btn.classList.remove('friends-filter-btn--active');
+            }
+        });
+
+        // Обновляем активные ссылки в меню
+        menuLinks.forEach(link => {
+            if (link.dataset.tab === tabType) {
+                link.classList.add('friends-menu__link--active');
+                link.classList.remove('friends-menu__link');
+            } else {
+                link.classList.remove('friends-menu__link--active');
+                link.classList.add('friends-menu__link');
+            }
+        });
+
+        // Загружаем соответствующий список
+        loadFriendsData(tabType);
+    };
+
+    // Обработчики для кнопок фильтров
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            handleTabChange(btn.dataset.tab);
+        });
     });
-    const activeBtn = document.querySelector(`.friends-filter-btn[data-tab="${tab}"]`);
-    if (activeBtn) activeBtn.classList.add('friends-filter-btn--active');
-    loadFriendsData(tab);
+
+    // Обработчики для ссылок в меню
+    menuLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleTabChange(link.dataset.tab);
+        });
+    });
 }
 
 async function loadFriendsData(tab) {
@@ -26,88 +121,167 @@ async function loadFriendsData(tab) {
     container.innerHTML = '<div class="loading">Загрузка...</div>';
 
     try {
-        // <-- ИСПРАВЛЕНО: /api/friends/list и /api/friends/requests
+        // Используем правильные эндпоинты
         const endpoint = tab === 'requests' ? '/api/friends/requests' : '/api/friends/list';
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error('Не удалось загрузить');
+        const response = await fetch(endpoint, { credentials: 'include' });
+        console.log('Ответ для', tab, ':', response.status);
 
-        const data = await res.json();
-        if (tab === 'requests') {
-            renderFriendRequests(data.requests || []);
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Данные для', tab, ':', data);
+
+            if (tab === 'requests') {
+                renderFriendRequests(data.requests || []);
+            } else {
+                renderFriendsList(data.friends || []);
+            }
         } else {
-            renderFriendsList(data.friends || []);
+            container.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки данных</p></div>';
         }
     } catch (error) {
         console.error('Ошибка загрузки:', error);
-        container.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки</p></div>';
+        container.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки данных</p></div>';
     }
 }
 
 function renderFriendsList(friends) {
+    console.log('Отрисовка списка друзей:', friends);
     const container = document.getElementById('friendsList');
     if (!container) return;
+
     if (!friends || friends.length === 0) {
         container.innerHTML = '<div class="friends-list__empty"><p>У вас пока нет друзей</p></div>';
         return;
     }
+
     container.innerHTML = friends.map(friend => `
-        <div class="friends-list__item" data-user-id="${friend.id}">
-            <div class="friends-list__avatar">
-                <img src="${friend.avatar || '/images/default-avatar.svg'}" alt="${friend.name}">
+        <div class="friend-item" data-user-id="${friend.id}">
+            <div class="friend-item__avatar">
+                <img src="${friend.avatar || '/images/default-avatar.svg'}" alt="${friend.firstName} ${friend.lastName}">
             </div>
-            <div class="friends-list__info">
-                <a href="/${friend.id}" class="friends-list__name spa-link">${friend.name}</a>
+            <div class="friend-item__info">
+                <a href="/${friend.id}" class="friend-item__name spa-link">${escapeHtml(friend.firstName)} ${escapeHtml(friend.lastName)}</a>
+            </div>
+            <div class="friend-item__actions">
+                <button class="friend-item__action-btn" onclick="location.href='/${friend.id}'">Профиль</button>
+                <button class="friend-item__action-btn" onclick="sendMessage(${friend.id})">Написать</button>
             </div>
         </div>
     `).join('');
 }
 
 function renderFriendRequests(requests) {
+    console.log('Отрисовка заявок:', requests);
     const container = document.getElementById('friendsList');
     if (!container) return;
+
     if (!requests || requests.length === 0) {
-        container.innerHTML = '<div class="friends-list__empty"><p>У вас нет заявок в друзья</p></div>';
+        console.log('Нет заявок для отображения');
+        container.innerHTML = '<div class="friends-list__empty"><p>Нет заявок в друзья</p></div>';
         return;
     }
-    container.innerHTML = requests.map(req => `
-        <div class="friends-list__item friends-list__item--request" data-user-id="${req.id}">
-            <div class="friends-list__avatar">
-                <img src="${req.avatar || '/images/default-avatar.svg'}" alt="${req.name}">
+
+    container.innerHTML = requests.map(request => `
+        <div class="request-item" data-request-id="${request.id}">
+            <div class="request-item__avatar">
+                <img src="${request.avatar || '/images/default-avatar.svg'}" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
             </div>
-            <div class="friends-list__info">
-                <a href="/${req.id}" class="friends-list__name spa-link">${req.name}</a>
+            <div class="request-item__info">
+                <a href="/${request.id}" class="request-item__name spa-link">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</a>
             </div>
-            <div class="friends-list__actions">
-                <!-- <-- ИСПРАВЛЕНО: используем requestId из объекта заявки -->
-                <button class="friends-list__accept-btn" onclick="acceptFriendRequest(${req.id})">Принять</button>
-                <button class="friends-list__reject-btn" onclick="rejectFriendRequest(${req.id})">Отклонить</button>
+            <div class="request-item__actions">
+                <button class="accept-btn" onclick="acceptFriendRequest(${request.id})">Принять</button>
+                <button class="decline-btn" onclick="rejectFriendRequest(${request.id})">Отклонить</button>
             </div>
         </div>
     `).join('');
 }
 
+// Экранирование HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 async function acceptFriendRequest(requestId) {
     try {
-        // <-- ИСПРАВЛЕНО: /api/friends/accept/:requestId
-        const res = await fetch(`/api/friends/accept/${requestId}`, { method: 'POST' });
-        if (!res.ok) throw new Error('Не удалось принять');
-        await loadFriendsData(currentFriendsTab);
-        if (window.updateFriendRequestsBadge) window.updateFriendRequestsBadge();
-    } catch (error) {
-        console.error('Ошибка:', error);
+        const response = await fetch(`/api/friends/accept/${requestId}`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message || 'Заявка принята!');
+            // Обновляем список заявок
+            loadFriendsData(currentFriendsTab);
+            // Обновляем счетчик заявок в бейдже
+            if (window.updateFriendRequestsBadge) {
+                window.updateFriendRequestsBadge();
+            }
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Ошибка при принятии заявки');
+        }
+    } catch (err) {
+        console.error('Ошибка при принятии заявки:', err);
+        alert('Ошибка сети. Попробуйте позже.');
     }
 }
 
 async function rejectFriendRequest(requestId) {
     try {
-        // <-- ИСПРАВЛЕНО: /api/friends/decline/:requestId
-        const res = await fetch(`/api/friends/decline/${requestId}`, { method: 'POST' });
-        if (!res.ok) throw new Error('Не удалось отклонить');
-        await loadFriendsData(currentFriendsTab);
-        if (window.updateFriendRequestsBadge) window.updateFriendRequestsBadge();
-    } catch (error) {
-        console.error('Ошибка:', error);
+        const response = await fetch(`/api/friends/decline/${requestId}`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message || 'Заявка отклонена!');
+            // Обновляем список заявок
+            loadFriendsData(currentFriendsTab);
+            // Обновляем счетчик заявок в бейдже
+            if (window.updateFriendRequestsBadge) {
+                window.updateFriendRequestsBadge();
+            }
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Ошибка при отклонении заявки');
+        }
+    } catch (err) {
+        console.error('Ошибка при отклонении заявки:', err);
+        alert('Ошибка сети. Попробуйте позже.');
     }
 }
 
+// Отправка сообщения
+function sendMessage(userId) {
+    // Перенаправляем на диалог с пользователем
+    window.location.href = `/dialogs#/dialog/${userId}`;
+}
+
+// ГЛОБАЛЬНАЯ РЕГИСТРАЦИЯ ФУНКЦИИ
 window.initFriends = initFriends;
+
+// Запускаем инициализацию при загрузке DOM, если это первая загрузка страницы
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
+            if (typeof window.initFriends === 'function') {
+                window.initFriends();
+            }
+        }
+    });
+} else {
+    // Если документ уже загружен, проверяем URL и запускаем при необходимости
+    if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
+        // Используем setTimeout для обеспечения завершения загрузки DOM
+        setTimeout(function () {
+            if (typeof window.initFriends === 'function') {
+                window.initFriends();
+            }
+        }, 0);
+    }
+}

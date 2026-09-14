@@ -190,3 +190,12 @@
   <!-- Стена -->
 
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.initProfile === 'function') {
+      window.initProfile();
+      console.log('initProfile вызвана');
+    }
+  });
+</script>

@@ -219,7 +219,12 @@ async function loadProfileData() {
 }
 // Проверка статуса дружбы и обновление кнопки
 // Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
 async function checkFriendshipStatus(userId, button) {
+    console.log('Проверка статуса дружбы для userId:', userId);
+    console.log('Кнопка перед проверкой:', button);
+
     try {
         const response = await fetch(`/api/friends/status/${userId}`, {
             credentials: 'include'
@@ -227,51 +232,107 @@ async function checkFriendshipStatus(userId, button) {
 
         if (!response.ok) {
             console.error('Ошибка проверки статуса дружбы:', response.statusText);
-            button.style.display = 'none';
+            if (button) button.style.display = 'none';
             return;
         }
 
         const data = await response.json();
+        console.log('Данные статуса дружбы:', data);
+
         const status = data.status;
+        console.log('Статус дружбы:', status);
 
-        // Убираем все существующие обработчики, чтобы избежать дублирования
-        button.onclick = null;
+        // Обновляем состояние кнопки напрямую, без клонирования
+        updateButtonByStatusDirect(button, status, userId);
 
-        switch (status) {
-            case 'friends':
-                // Если уже друзья, можно добавить кнопку "Удалить из друзей" или не показывать ничего
-                button.textContent = 'Друзья';
-                button.disabled = true;
-                button.classList.add('profile-actions__btn--disabled'); // если хотим дополнительные стили
-                button.style.display = 'block';
-                break;
-            case 'request_sent':
-                // Если запрос отправлен, можно показать соответствующий статус
-                button.textContent = 'Заявка отправлена';
-                button.disabled = true;
-                button.classList.add('profile-actions__btn--disabled');
-                button.style.display = 'block';
-                break;
-            case 'request_received':
-                // Если получен запрос, можно показать кнопки "Принять/Отклонить"
-                button.textContent = 'Принять заявку';
-                button.disabled = false;
-                button.classList.remove('profile-actions__btn--disabled');
-                button.style.display = 'block';
-                button.onclick = () => acceptFriendRequest(userId, button);
-                break;
-            case 'none':
-                // Показываем кнопку "Добавить в друзья"
-                button.textContent = 'Добавить в друзья';
-                button.disabled = false;
-                button.classList.remove('profile-actions__btn--disabled');
-                button.style.display = 'block';
-                button.onclick = () => sendFriendRequest(userId, button);
-                break;
-        }
     } catch (error) {
         console.error('Ошибка проверки статуса дружбы:', error);
-        button.style.display = 'none';
+        if (button) button.style.display = 'none';
+    }
+}
+
+// Вспомогательная функция для прямого обновления кнопки
+function updateButtonByStatusDirect(button, status, userId) {
+    if (!button) {
+        console.error('Кнопка не найдена');
+        return;
+    }
+
+    // Очищаем предыдущие обработчики событий
+    button.onclick = null;
+
+    switch (status) {
+        case 'friends':
+            button.textContent = 'Друзья';
+            button.disabled = true;
+            button.classList.add('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            break;
+        case 'request_sent':
+            button.textContent = 'Заявка отправлена';
+            button.disabled = true;
+            button.classList.add('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            break;
+        case 'request_received':
+            button.textContent = 'Принять заявку';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => acceptFriendRequest(userId, button);
+            break;
+        case 'none':
+            button.textContent = 'Добавить в друзья';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => sendFriendRequest(userId, button);
+            break;
+        default:
+            button.textContent = 'Добавить в друзья';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => sendFriendRequest(userId, button);
+            break;
+    }
+}
+
+// Вспомогательная функция для обновления кнопки
+function updateButtonByStatus(button, status, userId) {
+    // Очищаем обработчики событий
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+
+    const updatedButton = newButton;
+
+    switch (status) {
+        case 'friends':
+            updatedButton.textContent = 'Друзья';
+            updatedButton.disabled = true;
+            updatedButton.classList.add('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            break;
+        case 'request_sent':
+            updatedButton.textContent = 'Заявка отправлена';
+            updatedButton.disabled = true;
+            updatedButton.classList.add('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            break;
+        case 'request_received':
+            updatedButton.textContent = 'Принять заявку';
+            updatedButton.disabled = false;
+            updatedButton.classList.remove('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            updatedButton.onclick = () => acceptFriendRequest(userId, updatedButton);
+            break;
+        case 'none':
+            updatedButton.textContent = 'Добавить в друзья';
+            updatedButton.disabled = false;
+            updatedButton.classList.remove('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            updatedButton.onclick = () => sendFriendRequest(userId, updatedButton);
+            break;
     }
 }
 
@@ -282,7 +343,7 @@ async function acceptFriendRequest(userId, button) {
         button.disabled = true;
         button.textContent = 'Принимается...';
 
-        // Сначала нужно получить ID заявки, для этого нужно запросить список заявок
+        // Получаем список заявок
         const requestsResponse = await fetch('/api/friends/requests', {
             credentials: 'include'
         });
@@ -312,9 +373,7 @@ async function acceptFriendRequest(userId, button) {
         console.log(data.message);
 
         // Обновляем состояние кнопки
-        button.textContent = 'Друзья';
-        button.disabled = true;
-        button.classList.add('profile-actions__btn--disabled');
+        await checkFriendshipStatus(userId, button);
 
         // Обновляем счётчики в сайдбаре
         if (window.updateFriendRequestsBadge) {
@@ -323,9 +382,8 @@ async function acceptFriendRequest(userId, button) {
 
     } catch (error) {
         console.error('Ошибка принятия заявки в друзья:', error);
-        button.disabled = false;
-        button.textContent = 'Принять заявку';
-        button.classList.remove('profile-actions__btn--disabled');
+        // Восстанавливаем первоначальное состояние кнопки
+        await checkFriendshipStatus(userId, button);
         alert('Не удалось принять заявку в друзья: ' + error.message);
     }
 }
@@ -333,6 +391,7 @@ async function acceptFriendRequest(userId, button) {
 // Отправка запроса в друзья
 // Отправка запроса в друзья
 async function sendFriendRequest(userId, button) {
+    console.log('Отправка запроса в друзья для userId:', userId);
     try {
         button.disabled = true;
         button.textContent = 'Отправляется...';
@@ -342,24 +401,23 @@ async function sendFriendRequest(userId, button) {
             credentials: 'include'
         });
 
+        console.log('Ответ от сервера:', response);
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || 'Не удалось отправить запрос');
         }
 
         const data = await response.json();
-        console.log(data.message);
+        console.log('Успешный ответ:', data);
 
-        // Обновляем состояние кнопки
-        button.textContent = 'Заявка отправлена';
-        button.disabled = true;
-        button.classList.add('profile-actions__btn--disabled');
+        // После успешной отправки обновляем статус дружбы
+        await checkFriendshipStatus(userId, button);
 
     } catch (error) {
         console.error('Ошибка отправки запроса в друзья:', error);
-        button.disabled = false;
-        button.textContent = 'Добавить в друзья';
-        button.classList.remove('profile-actions__btn--disabled');
+        // Восстанавливаем первоначальное состояние кнопки
+        await checkFriendshipStatus(userId, button);
         alert('Не удалось отправить запрос в друзья: ' + error.message);
     }
 }
