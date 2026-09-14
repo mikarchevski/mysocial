@@ -449,6 +449,7 @@ async function loadWallPosts(filter = 'all') {
 }
 
 // Отображение записей на стене
+// Отображение записей на стене
 function renderWallPosts(posts) {
     const container = document.getElementById('wallPosts');
     if (!container) return;
@@ -460,15 +461,50 @@ function renderWallPosts(posts) {
 
     container.innerHTML = posts.map(post => `
         <div class="wall__post" data-post-id="${post.id}">
-            <div class="wall__post-header">
-                <span class="wall__post-author">${post.authorName || 'Аноним'}</span>
-                <span class="wall__post-date">${formatDate(post.createdAt)}</span>
+            <div class="wall__post-avatar">
+                <img src="/images/default-avatar.svg" alt="Аватар">
             </div>
-            <div class="wall__post-content">${escapeHtml(post.text)}</div>
+            <div class="wall__post-content">
+                <div class="wall__post-header">
+                    <a href="/${post.authorId}" class="wall__post-author">${escapeHtml(post.authorName)}</a>
+                    <span class="wall__post-time">${formatWallDate(post.createdAt)}</span>
+                </div>
+                <div class="wall__post-text">${escapeHtml(post.text)}</div>
+                <div class="wall__post-actions">
+                    <button class="wall__post-action" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                        <span>${post.likes || 0}</span>
+                    </button>
+                    <button class="wall__post-action" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span>${post.comments || 0}</span>
+                    </button>
+                </div>
+            </div>
         </div>
     `).join('');
 }
 
+function formatWallDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'только что';
+    if (minutes < 60) return `${minutes} мин. назад`;
+    if (hours < 24) return `${hours} ч. назад`;
+    if (days === 1) return 'вчера';
+    if (days < 7) return date.toLocaleDateString('ru-RU', { weekday: 'short' });
+    return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+// Обработка отправки поста на стену
 // Обработка отправки поста на стену
 async function handleWallSubmit() {
     const textarea = document.getElementById('wallTextarea');
