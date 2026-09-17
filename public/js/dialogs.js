@@ -5,6 +5,13 @@ let currentOpenDialog = null;
 
 // Инициализация страницы диалогов
 async function initDialogs() {
+    // Проверяем, доступны ли необходимые элементы
+    if (!document.getElementById('dialogsList')) {
+        console.log('Элементы диалогов еще не загружены, ждем 100мс...');
+        setTimeout(initDialogs, 100);
+        return;
+    }
+
     console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДИАЛОГОВ ===');
     console.log('Document readyState:', document.readyState);
 
@@ -47,6 +54,8 @@ async function initDialogs() {
 
     console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДИАЛОГОВ ===');
 }
+
+// ... остальные функции остаются без изменений ...
 
 // Инициализация табов
 function initDialogsTabs() {
@@ -413,3 +422,9 @@ window.initDialogs = initDialogs;
 window.openDialog = openDialog;
 window.startNewDialog = startNewDialog;
 window.closeNewMessageModalFn = closeNewMessageModalFn;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initDialogs };
+} else {
+    window.initDialogs = initDialogs;
+}
