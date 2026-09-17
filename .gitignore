@@ -6,3 +6,5 @@ dist/
 drizzle/
 *-lock.json
 docke*
+*qwen*
+.continue*
