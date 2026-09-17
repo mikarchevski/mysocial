@@ -2,28 +2,30 @@
 
 // public/js/friends.js
 
+
+// public/js/friends.js
+
 let currentFriendsTab = 'friends';
 
 async function initFriends() {
-    // Проверяем, доступны ли необходимые элементы
+    // 1. Проверка наличия DOM-элементов (страховка от гонки)
+    // Если элемента еще нет, ждем 50мс и пробуем снова.
     if (!document.getElementById('friendsList')) {
-        console.log('Элементы друзей еще не загружены, ждем 100мс...');
-        setTimeout(initFriends, 100);
+        console.log('Элементы друзей еще не загружены, ждем 50мс...');
+        setTimeout(initFriends, 50);
         return;
     }
 
     console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДРУЗЕЙ ===');
-    console.log('Document readyState:', document.readyState);
 
+    // 2. Дальше идет ваш обычный код инициализации
     let currentUser = null;
 
     try {
         const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
-        console.log('Ответ от /api/auth/me:', meResponse.status);
 
         if (meResponse.ok) {
             const meData = await meResponse.json();
-            console.log('Данные текущего пользователя:', meData);
             currentUser = meData.user;
 
             const currentUsernameEl = document.getElementById('currentUsername');
@@ -45,18 +47,19 @@ async function initFriends() {
         return;
     }
 
-    // Инициализация вкладок
-    console.log('Инициализация вкладок...');
+    // Инициализация вкладок и загрузка данных
     initTabs();
-
-    // Загрузка друзей по умолчанию
-    console.log('Загрузка списка друзей по умолчанию...');
     loadFriendsData(currentFriendsTab);
 
-    // Обработчик выхода
+    // Обработчик выхода (если он еще не навешан глобально в app.js, 
+    // но лучше дублировать здесь для автономности страницы)
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
+        // Удаляем старые обработчики, чтобы не дублировались при повторных заходах
+        const newLogoutBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+
+        newLogoutBtn.addEventListener('click', async () => {
             try {
                 const response = await fetch('/api/auth/logout', {
                     method: 'POST',
@@ -276,9 +279,3 @@ function sendMessage(userId) {
 }
 
 window.initFriends = initFriends;
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { initFriends };
-} else {
-    window.initFriends = initFriends;
-}

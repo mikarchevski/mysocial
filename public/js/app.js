@@ -1,40 +1,27 @@
 // public/js/app.js
 
 // Функция инициализации приложения
+// public/js/app.js
+
 async function initApp() {
-  // Проверяем, на какой странице мы находимся
   const currentPath = window.location.pathname;
 
-  // Если это главная страница ("/"), перенаправляем на страницу профиля текущего пользователя
+  // 1. Если это главная страница, перенаправляем на профиль текущего пользователя
   if (currentPath === '/' || currentPath === '') {
     try {
-      // Получаем информацию о текущем пользователе
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include'
-      });
-
+      const response = await fetch('/api/auth/me', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
-        // Переходим на страницу профиля текущего пользователя
         const profileUrl = `/${data.user.id}`;
         window.history.replaceState({ path: profileUrl }, '', profileUrl);
 
-        // Обновляем ссылку "Моя страница"
         updateMyPageLink(data.user.id);
 
-        // Загружаем содержимое страницы профиля
         if (typeof loadPageContent === 'function') {
           await loadPageContent(profileUrl);
-
-          // После загрузки содержимого страницы профиля, инициализируем профиль
-          if (typeof initProfile === 'function') {
-            setTimeout(initProfile, 100); // Небольшая задержка для гарантии загрузки DOM
-          }
-        } else if (typeof initProfile === 'function') {
-          initProfile();
+          if (typeof initProfile === 'function') setTimeout(initProfile, 50);
         }
       } else {
-        // Если пользователь не авторизован, перенаправляем на страницу входа
         window.location.href = '/auth';
       }
     } catch (error) {
@@ -42,30 +29,41 @@ async function initApp() {
       window.location.href = '/auth';
     }
   } else {
-    // Обновляем ссылку "Моя страница" при загрузке
+    // 2. Для всех остальных страниц обновляем UI шапки
     await updateMyPageLink();
-
-    // Для других страниц загружаем информацию о пользователе и обновляем UI
     await updateUserInfo();
 
-    // Если это страница профиля (содержит ID пользователя), загружаем её
-    if (/^\/\d+$/.test(currentPath)) {
+    // Проверяем, является ли текущий путь известным SPA-маршрутом
+    const isProfile = /^\/\d+$/.test(currentPath);
+    const isFriends = currentPath === '/friends';
+    const isDialogs = currentPath === '/dialogs';
+
+    // 3. Явно загружаем контент через роутер для всех наших SPA-страниц
+    if (isProfile || isFriends || isDialogs) {
       if (typeof loadPageContent === 'function') {
         await loadPageContent(currentPath);
 
-        // После загрузки содержимого страницы профиля, инициализируем профиль
-        if (typeof initProfile === 'function') {
-          setTimeout(initProfile, 100); // Небольшая задержка для гарантии загрузки DOM
+        // loadPageContent уже вызывает нужные init-функции внутри себя, 
+        // но небольшая страховочная задержка гарантирует, что DOM точно обновлен,
+        // и предотвращает конфликты, если где-то остался скрытый вызов.
+        if (isFriends && typeof initFriends === 'function') {
+          setTimeout(initFriends, 50);
+        } else if (isDialogs && typeof initDialogs === 'function') {
+          setTimeout(initDialogs, 50);
+        } else if (isProfile && typeof initProfile === 'function') {
+          setTimeout(initProfile, 50);
         }
       }
     }
   }
 
-  // Обновляем сайдбар
+  // 4. Обновляем сайдбар
   if (typeof updateSidebar === 'function') {
     updateSidebar();
   }
 }
+
+// Остальной код app.js (updateUserInfo, updateMyPageLink) оставляем без изменений
 
 // Функция обновления информации о пользователе в шапке
 async function updateUserInfo() {
