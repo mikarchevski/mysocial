@@ -1,133 +1,123 @@
 // public/scss/pages/_error.scss
-@use '../variables' as *;
+@use "../variables" as *;
 
-.error-page {
-  background: $bg-color;
+// public/scss/pages/_errors.scss
+.page-404-container,
+.page-404 {
   display: flex;
-  align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 20px;
+  align-items: center;
+  min-height: calc(100vh - 100px); // компенсируем высоту header
 }
 
-.error-container {
-  width: 100%;
-  max-width: 500px;
-  text-align: center;
-}
-
+// Обновляем .error-card для лучшей адаптации внутри SPA
 .error-card {
-  background: $card-bg;
-  border-radius: $border-radius-lg;
-  box-shadow: $box-shadow;
-  padding: 40px 32px;
+  margin: 0 auto;
+  // остальные стили остаются прежними
+}
+.error-card {
+  max-width: 500px;
+  margin: 100px auto;
+  padding: 40px;
   text-align: center;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  @media (max-width: 768px) {
+    margin: 50px auto;
+    padding: 30px 20px;
+    max-width: 90%;
+  }
 }
 
 .error-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
 }
 
 .error-icon {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($danger-color, 0.1);
-  border-radius: 50%;
-  margin: 0 auto;
+  margin-bottom: 20px;
 
   svg {
-    color: $danger-color;
-    width: 40px;
-    height: 40px;
+    display: block;
+    color: #e74c3c;
   }
 }
 
 .error-title {
-  font-size: 4rem;
-  font-weight: $font-weight-bold;
-  color: $text-color;
-  margin: 0;
-  line-height: 1;
+  font-size: 48px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 10px;
+
+  @media (max-width: 768px) {
+    font-size: 36px;
+  }
 }
 
 .error-message {
-  font-size: 1.5rem;
-  font-weight: $font-weight-bold;
-  color: $text-color;
-  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #e74c3c;
+  margin: 0 0 15px;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 }
 
 .error-description {
-  font-size: 1rem;
-  color: $text-secondary;
-  margin: 0 0 24px 0;
+  font-size: 16px;
+  color: #7f8c8d;
+  margin: 0 0 30px;
   line-height: 1.5;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 }
 
 .error-actions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
+  gap: 15px;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 .btn {
   display: inline-block;
   padding: 12px 24px;
   border: none;
-  border-radius: $border-radius;
-  font-size: 16px;
-  font-weight: $font-weight-bold;
+  border-radius: 6px;
   text-decoration: none;
-  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 200px;
+  transition: all 0.2s ease;
 
-  &--primary {
-    background: $primary-color;
+  &.btn-primary {
+    background-color: #4a76a8;
     color: white;
 
     &:hover {
-      background: darken($primary-color, 10%);
-      transform: translateY(-1px);
+      background-color: #3a6698;
+      transform: translateY(-2px);
     }
   }
 
-  &--secondary {
-    background: $secondary-color;
-    color: $text-color;
+  &.btn-secondary {
+    background-color: #f0f2f5;
+    color: #65676a;
 
     &:hover {
-      background: darken($secondary-color, 10%);
-      transform: translateY(-1px);
-    }
-  }
-}
-
-// Адаптивность
-@media (max-width: $mobile-breakpoint) {
-  .error-card {
-    padding: 32px 24px;
-  }
-  
-  .error-title {
-    font-size: 3rem;
-  }
-  
-  .error-message {
-    font-size: 1.25rem;
-  }
-  
-  .error-actions {
-    .btn {
-      min-width: 100%;
+      background-color: #e4e6eb;
+      transform: translateY(-2px);
     }
   }
 }
