@@ -366,17 +366,21 @@
   border-top: 1px solid $border-color;
   background: #fafafa;
   flex-shrink: 0;
+  align-items: end;
 
   textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid $border-color;
     border-radius: 6px;
-    resize: vertical;
+    resize: none;
     min-height: 60px;
     font-family: inherit;
     font-size: 14px;
     background: white;
+    min-height: 60px;
+    max-height: calc(12 * 1.4em + 20px);
+    scrollbar-width: none;
 
     &:focus {
       outline: none;

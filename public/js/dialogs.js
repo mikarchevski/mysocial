@@ -294,6 +294,7 @@ async function openDialog(partnerId, partnerName = null) {
 }
 
 // Рендер открытого диалога
+// Рендер открытого диалога
 function renderOpenDialog(partnerId, partnerName, messages) {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
@@ -326,6 +327,28 @@ function renderOpenDialog(partnerId, partnerName, messages) {
     const messagesContainer = document.getElementById('messagesContainer');
     if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Добавляем обработчики для автоподстройки высоты textarea
+    const textarea = document.getElementById('messageTextarea');
+    if (textarea) {
+        // Функция для автоподстройки высоты
+        function adjustTextareaHeight() {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 168) + 'px'; // 168px примерно равно 12 строкам
+        }
+
+        // Обработчики событий
+        textarea.addEventListener('input', adjustTextareaHeight);
+        textarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(partnerId);
+            }
+        });
+
+        // Изначальная настройка высоты
+        adjustTextareaHeight();
     }
 }
 
