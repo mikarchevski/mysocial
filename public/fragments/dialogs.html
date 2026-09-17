@@ -34,12 +34,18 @@
     </div>
 </div>
 
-<!-- Модалка для нового сообщения -->
-<div class="modal" id="newMessageModal" style="display: none;">
-    <div class="modal__content">
-        <h3>Новое сообщение</h3>
-        <input type="text" class="form-input" placeholder="Введите имя пользователя..." id="searchUserInput">
-        <div class="search-results" id="searchResults"></div>
-        <button class="modal__close" id="closeModal">Закрыть</button>
+<!-- Модалка для выбора друга для нового сообщения -->
+<div class="modal-overlay" id="newMessageModal" style="display: none;">
+    <div class="modal">
+        <div class="modal__header">
+            <h3 class="modal__title">Новое сообщение</h3>
+            <button class="modal__close" id="closeNewMessageModal">&times;</button>
+        </div>
+        <div class="modal__content">
+            <input type="text" class="form-input" placeholder="Поиск друзей..." id="searchFriendsInput">
+            <div class="friends-list" id="friendsListForMessaging">
+                <!-- Список друзей будет загружен через JavaScript -->
+            </div>
+        </div>
     </div>
 </div>
