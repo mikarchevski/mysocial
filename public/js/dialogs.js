@@ -1,6 +1,7 @@
 // public/js/dialogs.js
 
 let currentDialogsFilter = 'all';
+let currentOpenDialog = null;
 
 // Инициализация страницы диалогов
 async function initDialogs() {
@@ -147,7 +148,7 @@ async function openNewMessageModal(currentUser) {
         renderFriendsForMessaging(data.friends || []);
     } catch (error) {
         console.error('Ошибка загрузки друзей:', error);
-        friendsContainer.innerHTML = '<div class="error">Ошибка загрузки списка друзей</div>';
+        friendsContainer.innerHTML = '<div class="empty-state"><p>Ошибка загрузки списка друзей</p></div>';
     }
 }
 
@@ -178,11 +179,8 @@ function startNewDialog(friendId, friendName) {
     // Закрываем модальное окно
     closeNewMessageModalFn();
 
-    // Переход к диалогу с выбранным другом
-    window.location.hash = `#/dialog/${friendId}`;
-
-    // Открываем диалог в текущем окне
-    openDialog(friendId);
+    // Открываем диалог с выбранным другом
+    openDialog(friendId, friendName);
 }
 
 // Закрытие модального окна
@@ -260,7 +258,7 @@ function renderDialogsList(dialogs) {
         return;
     }
     container.innerHTML = dialogs.map(dialog => `
-        <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId})">
+        <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId}, '${escapeHtml(`${dialog.firstName} ${dialog.lastName}`)}')">
             <div class="dialogs-list__avatar">
                 <img src="/images/default-avatar.svg" alt="${escapeHtml(dialog.firstName)} ${escapeHtml(dialog.lastName)}">
                 ${dialog.unreadCount > 0 ? `<span class="dialogs-list__badge">${dialog.unreadCount}</span>` : ''}
@@ -274,11 +272,14 @@ function renderDialogsList(dialogs) {
 }
 
 // Открытие конкретного диалога
-async function openDialog(partnerId) {
+async function openDialog(partnerId, partnerName = null) {
     try {
         const res = await fetch(`/api/messages/dialog/${partnerId}`);
         if (!res.ok) throw new Error('Не удалось загрузить');
         const data = await res.json();
+
+        // Сохраняем ID текущего открытого диалога
+        currentOpenDialog = partnerId;
 
         // Переключаемся на вкладку просмотра
         document.querySelectorAll('.dialogs-tab').forEach(tab => tab.classList.remove('dialogs-tab--active'));
@@ -286,22 +287,28 @@ async function openDialog(partnerId) {
         document.querySelectorAll('.dialogs-tab-content').forEach(content => content.classList.remove('dialogs-tab-content--active'));
         document.getElementById('tab-view').classList.add('dialogs-tab-content--active');
 
-        renderOpenDialog(partnerId, data.messages || []);
+        renderOpenDialog(partnerId, partnerName, data.messages || []);
     } catch (error) {
         console.error('Ошибка:', error);
     }
 }
 
 // Рендер открытого диалога
-function renderOpenDialog(partnerId, messages) {
+function renderOpenDialog(partnerId, partnerName, messages) {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
+
+    // Если не передано имя партнера, получаем его
+    if (!partnerName) {
+        partnerName = 'Собеседник';
+    }
 
     container.innerHTML = `
         <div class="dialog-messages-header">
             <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+            <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
         </div>
-        <div class="messages-container">
+        <div class="messages-container" id="messagesContainer">
             ${messages.map(msg => `
                 <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
                     <div class="message__text">${escapeHtml(msg.encryptedContent)}</div>
@@ -314,6 +321,12 @@ function renderOpenDialog(partnerId, messages) {
             <button onclick="sendMessage(${partnerId})">Отправить</button>
         </div>
     `;
+
+    // Прокручиваем к последнему сообщению
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 }
 
 // Показать список диалогов
@@ -322,6 +335,9 @@ function showDialogsList() {
     document.querySelector('[data-tab="list"]').classList.add('dialogs-tab--active');
     document.querySelectorAll('.dialogs-tab-content').forEach(content => content.classList.remove('dialogs-tab-content--active'));
     document.getElementById('tab-list').classList.add('dialogs-tab-content--active');
+
+    // Сбрасываем текущий открытый диалог
+    currentOpenDialog = null;
 }
 
 // Отправка сообщения
@@ -345,7 +361,11 @@ async function sendMessage(recipientId) {
         if (!res.ok) throw new Error('Не удалось отправить');
 
         textarea.value = '';
-        await openDialog(recipientId);
+        // Обновляем текущий диалог
+        if (currentOpenDialog) {
+            openDialog(currentOpenDialog);
+        }
+        // Обновляем список диалогов
         await loadDialogsList();
     } catch (error) {
         console.error('Ошибка отправки:', error);
