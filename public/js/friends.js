@@ -1,8 +1,17 @@
 // public/js/friends.js
 
+// public/js/friends.js
+
 let currentFriendsTab = 'friends';
 
 async function initFriends() {
+    // Проверяем, доступны ли необходимые элементы
+    if (!document.getElementById('friendsList')) {
+        console.log('Элементы друзей еще не загружены, ждем 100мс...');
+        setTimeout(initFriends, 100);
+        return;
+    }
+
     console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДРУЗЕЙ ===');
     console.log('Document readyState:', document.readyState);
 
@@ -64,6 +73,10 @@ async function initFriends() {
 
     console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДРУЗЕЙ ===');
 }
+
+// ... остальные функции остаются без изменений ...
+
+// ... остальные функции остаются без изменений ...
 
 // Инициализация вкладок
 function initTabs() {
@@ -262,26 +275,10 @@ function sendMessage(userId) {
     window.location.href = `/dialogs#/dialog/${userId}`;
 }
 
-// ГЛОБАЛЬНАЯ РЕГИСТРАЦИЯ ФУНКЦИИ
 window.initFriends = initFriends;
 
-// Запускаем инициализацию при загрузке DOM, если это первая загрузка страницы
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
-            if (typeof window.initFriends === 'function') {
-                window.initFriends();
-            }
-        }
-    });
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initFriends };
 } else {
-    // Если документ уже загружен, проверяем URL и запускаем при необходимости
-    if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
-        // Используем setTimeout для обеспечения завершения загрузки DOM
-        setTimeout(function () {
-            if (typeof window.initFriends === 'function') {
-                window.initFriends();
-            }
-        }, 0);
-    }
+    window.initFriends = initFriends;
 }
