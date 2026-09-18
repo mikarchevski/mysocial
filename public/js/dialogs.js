@@ -369,14 +369,14 @@ function renderOpenDialog(partnerId, partnerName, messages) {
         <div class="messages-container" id="messagesContainer">
             ${messages.map(msg => `
                 <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
-                    <div class="message__text">${escapeHtml(msg.encryptedContent)}</div>
+                    <div class="message__text">${escapeHtml(msg.text || msg.encryptedContent)}</div>
                     <div class="message__time">${formatTime(msg.createdAt)}</div>
                 </div>
             `).join('')}
         </div>
         <div class="message-input-area">
             <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
-            <button onclick="senChatdMessage(${partnerId})">Отправить</button>
+            <button onclick="sendChatMessage(${partnerId})">Отправить</button>
         </div>
     `;
 
@@ -441,22 +441,29 @@ async function sendChatMessage(recipientId) {
     }
 
     try {
-        // 1. Получаем публичный ключ получателя
-        const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
-        const userData = await userRes.json();
-        
-        // Проверяем, есть ли публичный ключ у получателя
-        if (!userData.user || !userData.user.publicKey) {
-            alert('У пользователя не настроено шифрование!');
-            return;
-        }
+    // 1. Получаем публичный ключ получателя
+    const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
+    if (!userRes.ok) {
+        throw new Error(`Ошибка сервера при получении профиля: ${userRes.status}`);
+    }
+    
+    const userData = await userRes.json();
+    console.log('Полученные данные пользователя:', userData); // <-- Добавьте этот лог, чтобы увидеть реальную структуру
+    
+    // Адаптивная проверка: ищем ключ в userData.user.publicKey ИЛИ в userData.publicKey
+    const publicKey = userData.user?.publicKey || userData.publicKey;
 
-        // 2. Шифруем сообщение
-        const { encryptedContent, encryptedKey } = await encryptMessage(
-            plaintext, 
-            userData.user.publicKey
-        );
+    if (!publicKey) {
+        console.error('Публичный ключ не найден в ответе API!');
+        alert('У пользователя не настроено шифрование!');
+        return;
+    }
 
+    // 2. Шифруем сообщение (используем найденный publicKey)
+    const { encryptedContent, encryptedKey } = await encryptMessage(
+        plaintext, 
+        publicKey
+    );
         // 3. Отправляем зашифрованные данные на сервер
         const sendRes = await fetch('/api/messages/send', {
             method: 'POST',
