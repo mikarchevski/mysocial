@@ -1044,7 +1044,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .avatar-section {
-  width: 300px;
+  width: 235px;
   flex-shrink: 0;
   padding: 20px;
   border-right: 1px solid #e7e8ec;
@@ -1183,7 +1183,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 .profile-actions {
-  padding: 15px 20px;
+  padding: 15px 0;
   border-top: 1px solid #e7e8ec;
 }
 .profile-actions__btn {
@@ -1331,7 +1331,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 .profile-actions {
-  padding: 15px 20px;
+  padding: 15px 0;
   border-top: 1px solid #e7e8ec;
   text-align: center;
 }

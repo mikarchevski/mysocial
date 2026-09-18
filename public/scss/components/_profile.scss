@@ -14,7 +14,7 @@
 
 // Avatar section
 .avatar-section {
-  width: 300px;
+  width: 235px;
   flex-shrink: 0;
   padding: 20px;
   border-right: 1px solid #e7e8ec;
@@ -180,7 +180,7 @@
 
 // Кнопки действий профиля
 .profile-actions {
-  padding: 15px 20px;
+  padding: 15px 0;
   border-top: 1px solid #e7e8ec;
 
   &__btn {
@@ -351,7 +351,7 @@
 
 /// Кнопки действий профиля
 .profile-actions {
-  padding: 15px 20px;
+  padding: 15px 0;
   border-top: 1px solid #e7e8ec;
   text-align: center;
 
