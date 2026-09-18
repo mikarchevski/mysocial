@@ -132,9 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok) {
-                    alert('Регистрация успешна! Теперь вы можете войти.');
-                    document.querySelector('[data-tab="login"]').click();
-                    registerForm.reset();
+                       window.location.href = '/';
+
                 } else {
                     showError(registerForm, result.error || 'Ошибка регистрации');
                 }

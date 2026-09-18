@@ -27,19 +27,33 @@ const authService = new AuthService();
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   // Регистрация
-  app.post('/register', async (request, reply) => {
-    const body = registerSchema.parse(request.body);
+  app.post("/register", async (request, reply) => {
+  const body = registerSchema.parse(request.body);
+
+  try {
+    const user = await authService.register(body);
     
-    try {
-      const user = await authService.register(body);
-      return reply.status(201).send({ user });
-    } catch (error: any) {
-      if (error.message === 'Пользователь с таким email уже существует') {
-        return reply.status(409).send({ error: error.message });
-      }
-      return reply.status(500).send({ error: 'Внутренняя ошибка сервера' });
+    // Генерируем JWT токен сразу после регистрации
+    const token = app.jwt.sign({ userId: user.id }, { expiresIn: "1d" });
+    
+    // Устанавливаем куку с токеном
+    reply.setCookie("token", token, {
+      path: "/",
+      httpOnly: true,
+      secure: false, // для разработки
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60, // 1 день
+    });
+
+    // Возвращаем успешный ответ с пользователем
+    return reply.status(201).send({ user, success: true });
+  } catch (error: any) {
+    if (error.message === "Пользователь с таким email уже существует") {
+      return reply.status(409).send({ error: error.message });
     }
-  });
+    return reply.status(500).send({ error: "Внутренняя ошибка сервера" });
+  }
+});
 
   // Вход
   app.post('/login', async (request, reply) => {
