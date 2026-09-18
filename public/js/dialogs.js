@@ -47,15 +47,28 @@ async function initDialogs() {
     initDialogsTabs();
 
     // Загрузка диалогов
+    // Загрузка диалогов
     await loadDialogsList();
+
+    // === ИСПРАВЛЕНО: Автоматическое открытие диалога по хэшу ===
+    const hash = window.location.hash;
+    // Важно: слэши должны быть экранированы как \/
+    const dialogMatch = hash.match(/^#\/dialog\/(\d+)$/);
+    if (dialogMatch) {
+        const partnerId = parseInt(dialogMatch[1], 10);
+        // Небольшая задержка, чтобы список диалогов успел отрендериться
+        setTimeout(() => openDialog(partnerId), 300);
+    }
+    // ============================================================
+
+    // Инициализация обработчиков событий
+    initDialogsEventListeners(currentUser);
 
     // Инициализация обработчиков событий
     initDialogsEventListeners(currentUser);
 
     console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДИАЛОГОВ ===');
 }
-
-// ... остальные функции остаются без изменений ...
 
 // Инициализация табов
 function initDialogsTabs() {
@@ -248,13 +261,22 @@ function handleSearchInput(e) {
 
 // Загрузка списка диалогов
 async function loadDialogsList() {
+    const container = document.getElementById('dialogsList');
+    if (container) {
+        container.innerHTML = '<div class="loading" style="padding: 20px; text-align: center;">Загрузка диалогов...</div>';
+    }
+    
     try {
-        const res = await fetch(`/api/messages/dialogs?filter=${currentDialogsFilter}`);
-        if (!res.ok) throw new Error('Не удалось загрузить');
+        // ДОБАВЛЕНО: { credentials: 'include' } для передачи куки сессии
+        const res = await fetch(`/api/messages/dialogs?filter=${currentDialogsFilter}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
         const data = await res.json();
         renderDialogsList(data.dialogs || []);
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('Ошибка загрузки диалогов:', error);
+        if (container) {
+            container.innerHTML = `<div class="error" style="color: red; padding: 20px; text-align: center;">Не удалось загрузить диалоги. Проверьте авторизацию.</div>`;
+        }
     }
 }
 
@@ -282,27 +304,53 @@ function renderDialogsList(dialogs) {
 
 // Открытие конкретного диалога
 async function openDialog(partnerId, partnerName = null) {
+    const container = document.getElementById('openDialogsList');
+    if (container) {
+        container.innerHTML = '<div class="loading" style="padding: 20px; text-align: center;">Загрузка сообщений...</div>';
+    }
+
     try {
-        const res = await fetch(`/api/messages/dialog/${partnerId}`);
-        if (!res.ok) throw new Error('Не удалось загрузить');
+        // ДОБАВЛЕНО: { credentials: 'include' }
+        const res = await fetch(`/api/messages/dialog/${partnerId}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
         const data = await res.json();
-
-        // Сохраняем ID текущего открытого диалога
+        
         currentOpenDialog = partnerId;
-
+        
         // Переключаемся на вкладку просмотра
         document.querySelectorAll('.dialogs-tab').forEach(tab => tab.classList.remove('dialogs-tab--active'));
-        document.querySelector('[data-tab="view"]').classList.add('dialogs-tab--active');
+        const viewTab = document.querySelector('[data-tab="view"]');
+        if (viewTab) viewTab.classList.add('dialogs-tab--active');
+        
         document.querySelectorAll('.dialogs-tab-content').forEach(content => content.classList.remove('dialogs-tab-content--active'));
-        document.getElementById('tab-view').classList.add('dialogs-tab-content--active');
-
+        const tabView = document.getElementById('tab-view');
+        if (tabView) tabView.classList.add('dialogs-tab-content--active');
+        
         renderOpenDialog(partnerId, partnerName, data.messages || []);
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('Ошибка открытия диалога:', error);
+        if (container) {
+            container.innerHTML = `<div class="error" style="color: red; padding: 20px; text-align: center;">Не удалось загрузить сообщения.</div>`;
+        }
     }
 }
 
-// Рендер открытого диалога
+
+// Функция для создания контента вкладки просмотра, если он не существует
+function createViewTabContent() {
+    const dialogsContent = document.querySelector('.dialogs-content');
+    if (!dialogsContent) {
+        console.error('Контейнер диалогов не найден');
+        return;
+    }
+    
+    const viewContent = document.createElement('div');
+    viewContent.id = 'tab-view';
+    viewContent.className = 'dialogs-tab-content';
+    viewContent.innerHTML = '<div id="openDialogsList"></div>';
+    dialogsContent.appendChild(viewContent);
+}
+
 // Рендер открытого диалога
 function renderOpenDialog(partnerId, partnerName, messages) {
     const container = document.getElementById('openDialogsList');
@@ -328,7 +376,7 @@ function renderOpenDialog(partnerId, partnerName, messages) {
         </div>
         <div class="message-input-area">
             <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
-            <button onclick="sendMessage(${partnerId})">Отправить</button>
+            <button onclick="senChatdMessage(${partnerId})">Отправить</button>
         </div>
     `;
 
@@ -352,7 +400,7 @@ function renderOpenDialog(partnerId, partnerName, messages) {
         textarea.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage(partnerId);
+                sendChatMessage(partnerId);
             }
         });
 
@@ -373,64 +421,96 @@ function showDialogsList() {
 }
 
 // Отправка сообщения
-async function sendMessage(recipientId, plaintext) {
-  // 1. Получаем публичный ключ получателя
-  const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
-  const userData = await userRes.json();
-  
-  if (!userData.user.publicKey) {
-    alert('У пользователя не настроено шифрование!');
-    return;
-  }
+// Отправка сообщения
+async function sendChatMessage(recipientId) {
+    // Получаем текст сообщения
+    const textarea = document.getElementById('messageTextarea');
+    
+    // Проверяем, существует ли элемент textarea
+    if (!textarea) {
+        console.error('Элемент textarea с ID "messageTextarea" не найден');
+        alert('Ошибка: поле ввода сообщения не найдено. Возможно, вы не в диалоге.');
+        return;
+    }
+    
+    const plaintext = textarea.value.trim();
+    
+    if (!plaintext) {
+        alert('Введите текст сообщения');
+        return;
+    }
 
-  // 2. Шифруем сообщение
-  const { encryptedContent, encryptedKey } = await encryptMessage(
-    plaintext, 
-    userData.user.publicKey
-  );
+    try {
+        // 1. Получаем публичный ключ получателя
+        const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
+        const userData = await userRes.json();
+        
+        // Проверяем, есть ли публичный ключ у получателя
+        if (!userData.user || !userData.user.publicKey) {
+            alert('У пользователя не настроено шифрование!');
+            return;
+        }
 
-  // 3. Отправляем зашифрованные данные на сервер
-  const sendRes = await fetch('/api/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      recipientId: recipientId,
-      encryptedContent: encryptedContent,
-      encryptedKey: encryptedKey,
-    }),
-  });
+        // 2. Шифруем сообщение
+        const { encryptedContent, encryptedKey } = await encryptMessage(
+            plaintext, 
+            userData.user.publicKey
+        );
 
-  if (sendRes.ok) {
-    console.log('Сообщение безопасно отправлено!');
-  }
+        // 3. Отправляем зашифрованные данные на сервер
+        const sendRes = await fetch('/api/messages/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                recipientId: recipientId,
+                encryptedContent: encryptedContent,
+                encryptedKey: encryptedKey,
+            }),
+        });
+
+        if (sendRes.ok) {
+            console.log('Сообщение безопасно отправлено!');
+            // Очищаем поле ввода
+            textarea.value = '';
+            // Обновляем открытый диалог, чтобы показать новое сообщение
+            await openDialog(recipientId);
+        } else {
+            const error = await sendRes.json().catch(() => ({}));
+            console.error('Ошибка отправки сообщения:', error);
+            alert('Ошибка отправки сообщения: ' + (error.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        console.error('Ошибка при отправке сообщения:', error);
+        alert('Произошла ошибка при отправке сообщения');
+    }
 }
 
 async function renderMessages(messagesFromServer) {
-  const myPrivateKey = localStorage.getItem('my_private_key');
-  if (!myPrivateKey) {
-    console.error('Приватный ключ не найден!');
-    return;
-  }
+    const myPrivateKey = localStorage.getItem('my_private_key');
+    if (!myPrivateKey) {
+        console.error('Приватный ключ не найден!');
+        return;
+    }
 
-  const decryptedMessages = await Promise.all(
-    messagesFromServer.map(async (msg) => {
-      try {
-        const plaintext = await decryptMessage(
-          msg.encryptedContent,
-          msg.encryptedKey,
-          myPrivateKey
-        );
-        return { ...msg, text: plaintext }; // Добавляем расшифрованный текст
-      } catch (err) {
-        console.error('Ошибка расшифровки сообщения', msg.id, err);
-        return { ...msg, text: '⚠️ Ошибка расшифровки' };
-      }
-    })
-  );
+    const decryptedMessages = await Promise.all(
+        messagesFromServer.map(async (msg) => {
+            try {
+                const plaintext = await decryptMessage(
+                    msg.encryptedContent,
+                    msg.encryptedKey,
+                    myPrivateKey
+                );
+                return { ...msg, text: plaintext }; // Добавляем расшифрованный текст
+            } catch (err) {
+                console.error('Ошибка расшифровки сообщения', msg.id, err);
+                return { ...msg, text: '⚠️ Ошибка расшифровки' };
+            }
+        })
+    );
 
-  // Теперь рендерим decryptedMessages, используя msg.text
-  console.log(decryptedMessages);
+    // Теперь рендерим decryptedMessages, используя msg.text
+    console.log(decryptedMessages);
 }
 
 // Форматирование времени

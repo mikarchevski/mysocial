@@ -44,22 +44,31 @@ async function initApp() {
   } else {
     // Обновляем ссылку "Моя страница" при загрузке
     await updateMyPageLink();
-
+    
     // Для других страниц загружаем информацию о пользователе и обновляем UI
     await updateUserInfo();
 
-    // Если это страница профиля (содержит ID пользователя), загружаем её
-    if (/^\/\d+$/.test(currentPath)) {
-      if (typeof loadPageContent === 'function') {
-        await loadPageContent(currentPath);
+    // Проверяем, является ли текущий путь известным SPA-маршрутом
+    const isProfile = /^\/\d+$/.test(currentPath);
+    const isFriends = currentPath === '/friends';
+    const isDialogs = currentPath === '/dialogs';
 
-        // После загрузки содержимого страницы профиля, инициализируем профиль
-        if (typeof initProfile === 'function') {
-          setTimeout(initProfile, 100); // Небольшая задержка для гарантии загрузки DOM
+    // Явно загружаем контент через роутер для всех наших SPA-страниц
+    if (isProfile || isFriends || isDialogs) {
+        if (typeof loadPageContent === 'function') {
+            await loadPageContent(currentPath);
+            
+            // Небольшая страховочная задержка гарантирует, что DOM точно обновлен
+            if (isFriends && typeof initFriends === 'function') {
+                setTimeout(initFriends, 50);
+            } else if (isDialogs && typeof initDialogs === 'function') {
+                setTimeout(initDialogs, 50);
+            } else if (isProfile && typeof initProfile === 'function') {
+                setTimeout(initProfile, 50);
+            }
         }
-      }
     }
-  }
+}
 
   // Обновляем сайдбар
   if (typeof updateSidebar === 'function') {
