@@ -5,7 +5,8 @@ import MessagesService from '../services/messages.service.js';
 const messagesService = new MessagesService();
 
 export const messageRoutes: FastifyPluginAsync = async (app) => {
-  // Количество непрочитанных диалогов
+  
+  // 1. Количество непрочитанных диалогов
   app.get('/unread-count', {
     preValidation: [(app as any).authenticate]
   }, async (request, reply) => {
@@ -14,7 +15,7 @@ export const messageRoutes: FastifyPluginAsync = async (app) => {
     return { unreadDialogs: count };
   });
 
-  // Список диалогов
+  // 2. Список диалогов
   app.get('/dialogs', {
     preValidation: [(app as any).authenticate]
   }, async (request, reply) => {
@@ -24,7 +25,7 @@ export const messageRoutes: FastifyPluginAsync = async (app) => {
     return { dialogs };
   });
 
-  // Сообщения конкретного диалога
+  // 3. Сообщения конкретного диалога
   app.get('/dialog/:userId', {
     preValidation: [(app as any).authenticate]
   }, async (request, reply) => {
@@ -32,14 +33,14 @@ export const messageRoutes: FastifyPluginAsync = async (app) => {
     const partnerId = parseInt((request.params as any).userId, 10);
 
     if (isNaN(partnerId)) {
-      return reply.status(400).send({ error: 'Некорректный ID' });
+      return reply.status(400).send({ error: 'Некорректный ID партнера' });
     }
 
     const messages = await messagesService.getDialogMessages(currentUserId, partnerId);
     return { messages };
   });
 
-  // Отправка сообщения
+  // 4. Отправка сообщения (ИСПРАВЛЕНО)
   app.post('/send', {
     preValidation: [(app as any).authenticate]
   }, async (request, reply) => {
@@ -50,17 +51,18 @@ export const messageRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: 'Не указаны получатель или сообщение' });
     }
 
-    const message = await messagesService.sendMessage(
+    // Исправлено: сохраняем результат в newMessage и возвращаем его
+    const newMessage = await messagesService.sendMessage(
       senderId,
       parseInt(recipientId, 10),
       encryptedContent,
       encryptedKey || ''
     );
 
-    return { message };
+    return { success: true, message: newMessage };
   });
 
-  // Поиск пользователей
+  // 5. Поиск пользователей (для начала диалога)
   app.get('/search', {
     preValidation: [(app as any).authenticate]
   }, async (request, reply) => {

@@ -373,35 +373,64 @@ function showDialogsList() {
 }
 
 // Отправка сообщения
-async function sendMessage(recipientId) {
-    const textarea = document.getElementById('messageTextarea');
-    if (!textarea) return;
-    const text = textarea.value.trim();
-    if (!text) return;
+async function sendMessage(recipientId, plaintext) {
+  // 1. Получаем публичный ключ получателя
+  const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
+  const userData = await userRes.json();
+  
+  if (!userData.user.publicKey) {
+    alert('У пользователя не настроено шифрование!');
+    return;
+  }
 
-    try {
-        const res = await fetch('/api/messages/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-                recipientId: recipientId,
-                encryptedContent: text,
-                encryptedKey: ''
-            })
-        });
-        if (!res.ok) throw new Error('Не удалось отправить');
+  // 2. Шифруем сообщение
+  const { encryptedContent, encryptedKey } = await encryptMessage(
+    plaintext, 
+    userData.user.publicKey
+  );
 
-        textarea.value = '';
-        // Обновляем текущий диалог
-        if (currentOpenDialog) {
-            openDialog(currentOpenDialog);
-        }
-        // Обновляем список диалогов
-        await loadDialogsList();
-    } catch (error) {
-        console.error('Ошибка отправки:', error);
-    }
+  // 3. Отправляем зашифрованные данные на сервер
+  const sendRes = await fetch('/api/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      recipientId: recipientId,
+      encryptedContent: encryptedContent,
+      encryptedKey: encryptedKey,
+    }),
+  });
+
+  if (sendRes.ok) {
+    console.log('Сообщение безопасно отправлено!');
+  }
+}
+
+async function renderMessages(messagesFromServer) {
+  const myPrivateKey = localStorage.getItem('my_private_key');
+  if (!myPrivateKey) {
+    console.error('Приватный ключ не найден!');
+    return;
+  }
+
+  const decryptedMessages = await Promise.all(
+    messagesFromServer.map(async (msg) => {
+      try {
+        const plaintext = await decryptMessage(
+          msg.encryptedContent,
+          msg.encryptedKey,
+          myPrivateKey
+        );
+        return { ...msg, text: plaintext }; // Добавляем расшифрованный текст
+      } catch (err) {
+        console.error('Ошибка расшифровки сообщения', msg.id, err);
+        return { ...msg, text: '⚠️ Ошибка расшифровки' };
+      }
+    })
+  );
+
+  // Теперь рендерим decryptedMessages, используя msg.text
+  console.log(decryptedMessages);
 }
 
 // Форматирование времени
