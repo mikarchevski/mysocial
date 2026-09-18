@@ -47,7 +47,6 @@ async function initDialogs() {
     initDialogsTabs();
 
     // Загрузка диалогов
-    // Загрузка диалогов
     await loadDialogsList();
 
     // === ИСПРАВЛЕНО: Автоматическое открытие диалога по хэшу ===
@@ -60,9 +59,6 @@ async function initDialogs() {
         setTimeout(() => openDialog(partnerId), 300);
     }
     // ============================================================
-
-    // Инициализация обработчиков событий
-    initDialogsEventListeners(currentUser);
 
     // Инициализация обработчиков событий
     initDialogsEventListeners(currentUser);
@@ -351,11 +347,44 @@ function createViewTabContent() {
     dialogsContent.appendChild(viewContent);
 }
 
-// Рендер открытого диалога
+// Вспомогательные функции для работы с локальным хранилищем сообщений
+function storeLocalMessage(messageId, text) {
+    const messageData = {
+        text: text,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + (5 * 60 * 1000) // 5 минут
+    };
+    localStorage.setItem(`local_message_${messageId}`, JSON.stringify(messageData));
+}
+
+function getAndRemoveLocalMessage(messageId) {
+    const stored = localStorage.getItem(`local_message_${messageId}`);
+    if (stored) {
+        const messageData = JSON.parse(stored);
+        if (Date.now() <= messageData.expiresAt) {
+            localStorage.removeItem(`local_message_${messageId}`);
+            return messageData.text;
+        } else {
+            // Удаляем просроченное сообщение
+            localStorage.removeItem(`local_message_${messageId}`);
+        }
+    }
+    return null;
+}
+
 // Рендер открытого диалога
 function renderOpenDialog(partnerId, partnerName, messages) {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
+
+    // Получаем ID текущего пользователя
+    let currentUserId = null;
+    fetch('/api/auth/me', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            currentUserId = data.user.id;
+        })
+        .catch(err => console.error('Ошибка получения ID текущего пользователя:', err));
 
     // Если не передано имя партнера, получаем его
     if (!partnerName) {
@@ -371,7 +400,7 @@ function renderOpenDialog(partnerId, partnerName, messages) {
             </div>
             <div class="messages-container" id="messagesContainer">
                 ${decryptedMessages.map(msg => `
-                    <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
+                    <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}" data-message-id="${msg.id}">
                         <div class="message__text">${escapeHtml(msg.text)}</div>
                         <div class="message__time">${formatTime(msg.createdAt)}</div>
                     </div>
@@ -412,25 +441,59 @@ function renderOpenDialog(partnerId, partnerName, messages) {
         }
     }).catch(err => {
         console.error('Ошибка при расшифровке сообщений:', err);
-        // Отображаем зашифрованные сообщения в случае ошибки
-        container.innerHTML = `
-            <div class="dialog-messages-header">
-                <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
-                <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
-            </div>
-            <div class="messages-container" id="messagesContainer">
-                ${messages.map(msg => `
-                    <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
-                        <div class="message__text">${escapeHtml(msg.encryptedContent)}</div>
-                        <div class="message__time">${formatTime(msg.createdAt)}</div>
+        // Для корректного отображения при ошибке также получаем currentUserId
+        fetch('/api/auth/me', { credentials: 'include' })
+            .then(response => response.json())
+            .then(userData => {
+                const currentUserId = userData.user.id;
+                // Отображаем зашифрованные сообщения в случае ошибки
+                container.innerHTML = `
+                    <div class="dialog-messages-header">
+                        <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+                        <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
                     </div>
-                `).join('')}
-            </div>
-            <div class="message-input-area">
-                <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
-                <button onclick="sendChatMessage(${partnerId})">Отправить</button>
-            </div>
-        `;
+                    <div class="messages-container" id="messagesContainer">
+                        ${messages.map(msg => {
+                            // Проверяем, является ли сообщение вашим
+                            const isOwnMessage = msg.senderId === currentUserId;
+                            const messageClass = isOwnMessage ? 'message--sent' : 'message--received';
+                            const messageText = isOwnMessage ? `[Вы]: ${msg.encryptedContent}` : '⚠️ Зашифрованное сообщение';
+                            return `
+                                <div class="message ${messageClass}" data-message-id="${msg.id}">
+                                    <div class="message__text">${escapeHtml(messageText)}</div>
+                                    <div class="message__time">${formatTime(msg.createdAt)}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="message-input-area">
+                        <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
+                        <button onclick="sendChatMessage(${partnerId})">Отправить</button>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Ошибка получения данных пользователя:', error);
+                // Резервный вариант без идентификации отправителя
+                container.innerHTML = `
+                    <div class="dialog-messages-header">
+                        <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+                        <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
+                    </div>
+                    <div class="messages-container" id="messagesContainer">
+                        ${messages.map(msg => `
+                            <div class="message message--received" data-message-id="${msg.id}">
+                                <div class="message__text">${escapeHtml(msg.encryptedContent)}</div>
+                                <div class="message__time">${formatTime(msg.createdAt)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="message-input-area">
+                        <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
+                        <button onclick="sendChatMessage(${partnerId})">Отправить</button>
+                    </div>
+                `;
+            });
     });
 }
 
@@ -446,12 +509,10 @@ function showDialogsList() {
 }
 
 // Отправка сообщения
-// Отправка сообщения
+// В функции sendChatMessage, объявите tempMessageId в правильной области видимости
 async function sendChatMessage(recipientId) {
-    // Получаем текст сообщения
     const textarea = document.getElementById('messageTextarea');
     
-    // Проверяем, существует ли элемент textarea
     if (!textarea) {
         console.error('Элемент textarea с ID "messageTextarea" не найден');
         alert('Ошибка: поле ввода сообщения не найдено. Возможно, вы не в диалоге.');
@@ -465,31 +526,50 @@ async function sendChatMessage(recipientId) {
         return;
     }
 
+    // Объявляем tempMessageId в нужной области видимости
+    const tempMessageId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     try {
-    // 1. Получаем публичный ключ получателя
-    const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
-    if (!userRes.ok) {
-        throw new Error(`Ошибка сервера при получении профиля: ${userRes.status}`);
-    }
-    
-    const userData = await userRes.json();
-    console.log('Полученные данные пользователя:', userData); // <-- Добавьте этот лог, чтобы увидеть реальную структуру
-    
-    // Адаптивная проверка: ищем ключ в userData.user.publicKey ИЛИ в userData.publicKey
-    const publicKey = userData.user?.publicKey || userData.publicKey;
+        // Получаем публичный ключ получателя
+        const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
+        if (!userRes.ok) {
+            throw new Error(`Ошибка сервера при получении профиля: ${userRes.status}`);
+        }
+        
+        const userData = await userRes.json();
+        const publicKey = userData.user?.publicKey || userData.publicKey;
 
-    if (!publicKey) {
-        console.error('Публичный ключ не найден в ответе API!');
-        alert('У пользователя не настроено шифрование!');
-        return;
-    }
+        if (!publicKey) {
+            console.error('Публичный ключ не найден в ответе API!');
+            alert('У пользователя не настроено шифрование!');
+            return;
+        }
 
-    // 2. Шифруем сообщение (используем найденный publicKey)
-    const { encryptedContent, encryptedKey } = await encryptMessage(
-        plaintext, 
-        publicKey
-    );
-        // 3. Отправляем зашифрованные данные на сервер
+        // Шифруем сообщение
+        const { encryptedContent, encryptedKey } = await encryptMessage(plaintext, publicKey);
+        
+        // Получаем ID текущего пользователя для идентификации отправителя
+        const currentUserResponse = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!currentUserResponse.ok) {
+            throw new Error('Не удалось получить информацию о текущем пользователе');
+        }
+        const currentUserData = await currentUserResponse.json();
+        const currentUserId = currentUserData.user.id;
+
+        // Добавляем сообщение во временный список с расшифрованным текстом
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messagesContainer) {
+            const newMessageHtml = `
+                <div class="message message--sent" data-message-id="${tempMessageId}" data-temp="true">
+                    <div class="message__text">${escapeHtml(plaintext)}</div>
+                    <div class="message__time">${formatTime(new Date().toISOString())}</div>
+                </div>
+            `;
+            messagesContainer.insertAdjacentHTML('beforeend', newMessageHtml);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Отправляем зашифрованные данные на сервер
         const sendRes = await fetch('/api/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -505,19 +585,92 @@ async function sendChatMessage(recipientId) {
             console.log('Сообщение безопасно отправлено!');
             // Очищаем поле ввода
             textarea.value = '';
-            // Обновляем открытый диалог, чтобы показать новое сообщение
-            await openDialog(recipientId);
+            
+            // После успешной отправки обновляем диалог
+            // Загружаем обновленный диалог, не удаляя временные сообщения заранее
+            await loadUpdatedDialog(recipientId, plaintext);
         } else {
             const error = await sendRes.json().catch(() => ({}));
             console.error('Ошибка отправки сообщения:', error);
+            // Удаляем временное сообщение при ошибке
+            const tempMessage = document.querySelector(`[data-message-id="${tempMessageId}"][data-temp="true"]`);
+            if (tempMessage) tempMessage.remove();
             alert('Ошибка отправки сообщения: ' + (error.error || 'Неизвестная ошибка'));
         }
     } catch (error) {
         console.error('Ошибка при отправке сообщения:', error);
+        // Удаляем временное сообщение при ошибке
+        const tempMessage = document.querySelector(`[data-message-id="${tempMessageId}"][data-temp="true"]`);
+        if (tempMessage) tempMessage.remove();
         alert('Произошла ошибка при отправке сообщения');
     }
 }
 
+// Новая функция для загрузки обновленного диалога
+// Новая реализация функции loadUpdatedDialog
+// Новая реализация функции loadUpdatedDialog
+async function loadUpdatedDialog(recipientId, lastSentMessage = null) {
+    try {
+        const res = await fetch(`/api/messages/dialog/${recipientId}`, { credentials: 'include' });
+        if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
+        const data = await res.json();
+        
+        // Обновляем только содержимое сообщений
+        await updateMessagesDisplay(data.messages || [], lastSentMessage);
+    } catch (error) {
+        console.error('Ошибка обновления диалога:', error);
+        // В случае ошибки пробуем обновить через openDialog, но с задержкой
+        setTimeout(() => {
+            openDialog(recipientId);
+        }, 500);
+    }
+}
+
+// Обновляем функцию updateMessagesDisplay
+// Обновляем функцию updateMessagesDisplay
+async function updateMessagesDisplay(messages, lastSentMessage = null) {
+    const messagesContainer = document.getElementById('messagesContainer');
+    if (!messagesContainer) return;
+
+    // Получаем ID текущего пользователя
+    const currentUserResponse = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!currentUserResponse.ok) {
+        console.error('Ошибка получения ID пользователя');
+        return;
+    }
+    const currentUserData = await currentUserResponse.json();
+    const currentUserId = currentUserData.user.id;
+
+    // Расшифровываем сообщения
+    const decryptedMessages = await renderMessages(messages);
+    
+    // Формируем HTML для всех сообщений
+    const messagesHtml = decryptedMessages.map(msg => {
+        const isOwnMessage = msg.senderId === currentUserId;
+        const messageClass = isOwnMessage ? 'message--sent' : 'message--received';
+        const messageText = msg.text || `[Вы]: ${msg.encryptedContent || 'Сообщение'}`;
+        return `
+            <div class="message ${messageClass}" data-message-id="${msg.id}">
+                <div class="message__text">${escapeHtml(messageText)}</div>
+                <div class="message__time">${formatTime(msg.createdAt)}</div>
+            </div>
+        `;
+    }).join('');
+
+    // Обновляем содержимое контейнера
+    messagesContainer.innerHTML = messagesHtml;
+    
+    // Прокручиваем к последнему сообщению
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Вспомогательная функция для преобразования текста в base64 (для проверки)
+function plaintextToBase64(text) {
+    return btoa(unescape(encodeURIComponent(text)));
+}
+
+// Обновляем renderMessages
+// Обновляем функцию renderMessages
 async function renderMessages(messagesFromServer) {
     const myPrivateKey = localStorage.getItem('my_private_key');
     if (!myPrivateKey) {
@@ -526,10 +679,46 @@ async function renderMessages(messagesFromServer) {
         return messagesFromServer.map(msg => ({...msg, text: '⚠️ Ключ не найден'}));
     }
 
+    const currentUserResponse = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!currentUserResponse.ok) {
+        throw new Error('Не удалось получить информацию о текущем пользователе');
+    }
+    const currentUserData = await currentUserResponse.json();
+    const currentUserId = currentUserData.user.id;
+
     const decryptedMessages = await Promise.all(
         messagesFromServer.map(async (msg) => {
             try {
-                // Проверяем, что у сообщения есть необходимые поля
+                // Если сообщение от текущего пользователя, возвращаем оригинальный текст
+                if (msg.senderId === currentUserId) {
+                    // Проверяем, есть ли локально сохраненное сообщение (для только что отправленных)
+                    const localMessage = getAndRemoveLocalMessage(msg.id);
+                    if (localMessage) {
+                        return { ...msg, text: localMessage };
+                    } else {
+                        // Для уже сохраненных собственных сообщений используем зашифрованный контент как есть
+                        // или пытаемся расшифровать, если есть необходимые данные
+                        if (msg.encryptedContent && msg.encryptedKey) {
+                            try {
+                                const plaintext = await decryptMessage(
+                                    msg.encryptedContent,
+                                    msg.encryptedKey,
+                                    myPrivateKey
+                                );
+                                return { ...msg, text: plaintext };
+                            } catch (decryptErr) {
+                                console.warn('Не удалось расшифровать собственное сообщение:', decryptErr);
+                                // Если не можем расшифровать, показываем зашифрованный текст
+                                return { ...msg, text: msg.encryptedContent };
+                            }
+                        } else {
+                            // Если нет зашифрованных данных, возвращаем текст как есть
+                            return { ...msg, text: msg.text || msg.encryptedContent || 'Сообщение отправителя' };
+                        }
+                    }
+                }
+
+                // Проверяем, что у сообщения есть необходимые поля для входящих сообщений
                 if (!msg.encryptedContent || !msg.encryptedKey) {
                     console.warn('Отсутствуют зашифрованные данные в сообщении', msg.id);
                     return { ...msg, text: '⚠️ Нет зашифрованных данных' };
@@ -546,7 +735,8 @@ async function renderMessages(messagesFromServer) {
                 console.error('Данные сообщения:', {
                     encryptedContent: msg.encryptedContent,
                     encryptedKey: msg.encryptedKey,
-                    senderId: msg.senderId
+                    senderId: msg.senderId,
+                    id: msg.id
                 });
                 return { ...msg, text: '⚠️ Ошибка расшифровки' };
             }
@@ -555,6 +745,7 @@ async function renderMessages(messagesFromServer) {
 
     return decryptedMessages;
 }
+
 
 // Форматирование времени
 function formatTime(dateString) {
