@@ -64,7 +64,14 @@ export function notifyUserOfNewMessage(userId: number, messageData: any) {
   if (connection && connection.readyState === WebSocket.OPEN) {
     connection.send(JSON.stringify({
       type: 'new_message',
-      data: messageData
+      data: {
+        id: messageData.id,
+        senderId: messageData.senderId,
+        recipientId: messageData.recipientId,
+        encryptedContent: messageData.encryptedContent,
+        createdAt: messageData.createdAt,
+        isRead: messageData.isRead
+      }
     }));
   }
 }
@@ -79,3 +86,6 @@ export function notifyUserOfUnreadCountChange(userId: number, count: number) {
     }));
   }
 }
+
+// Экспортируем функции для использования в других модулях
+export { activeConnections };

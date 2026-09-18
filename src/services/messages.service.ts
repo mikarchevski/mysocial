@@ -53,10 +53,10 @@ export default class MessagesService {
   async getDialogMessages(currentUserId: number, partnerId: number) {
     const messages = await this.messagesRepo.findBetweenUsers(currentUserId, partnerId);
     
-    // Помечаем как прочитанные
+    // Помечаем сообщения как прочитанные
     await this.messagesRepo.markAsRead(partnerId, currentUserId);
     
-    // Обновляем счетчик непрочитанных сообщений для отправителя
+    // Обновляем счётчик непрочитанных сообщений у отправителя
     const senderUnreadCount = await this.messagesRepo.getUnreadDialogsCount(partnerId);
     notifyUserOfUnreadCountChange(partnerId, senderUnreadCount);
     
@@ -76,12 +76,13 @@ export default class MessagesService {
     notifyUserOfNewMessage(recipientId, {
       id: message.id,
       senderId: message.senderId,
+      recipientId: message.recipientId,
       encryptedContent: message.encryptedContent,
       createdAt: message.createdAt,
       isRead: message.isRead
     });
     
-    // Уведомляем отправителя о новых непрочитанных сообщениях (если нужно)
+    // Обновляем счётчик непрочитанных сообщений у получателя
     const recipientUnreadCount = await this.messagesRepo.getUnreadDialogsCount(recipientId);
     notifyUserOfUnreadCountChange(recipientId, recipientUnreadCount);
     
