@@ -1,0 +1,51 @@
+<div class="dialogs-container">
+    <!-- Табы -->
+    <div class="dialogs-tabs">
+        <button class="dialogs-tab dialogs-tab--active" data-tab="list">Диалоги</button>
+        <button class="dialogs-tab" data-tab="view">Просмотр диалогов</button>
+    </div>
+
+    <!-- Контент табов -->
+    <div class="dialogs-content">
+        <!-- Таб 1: Список диалогов -->
+        <div class="dialogs-tab-content dialogs-tab-content--active" id="tab-list">
+            <div class="dialogs-header">
+                <input type="text" class="dialogs-search" placeholder="Поиск..." id="searchInput">
+                <button class="dialogs-btn" id="newMessageBtn">+ Написать</button>
+            </div>
+            <div class="dialogs-filter">
+                <button class="filter-btn filter-btn--active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="unread">Непрочитанные</button>
+            </div>
+            <div class="dialogs-list" id="dialogsList">
+                <!-- Диалоги загружаются через JS -->
+            </div>
+        </div>
+
+        <!-- Таб 2: Просмотр диалогов -->
+        <div class="dialogs-tab-content" id="tab-view">
+            <div class="open-dialogs-list" id="openDialogsList">
+                <!-- Открытые диалоги добавляются сюда -->
+                <div class="empty-state">
+                    <p>Выберите диалог из списка, чтобы открыть его здесь</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка для выбора друга для нового сообщения -->
+<div class="modal-overlay" id="newMessageModal" style="display: none;">
+    <div class="modal">
+        <div class="modal__header">
+            <h3 class="modal__title">Новое сообщение</h3>
+            <button class="modal__close" id="closeNewMessageModal">&times;</button>
+        </div>
+        <div class="modal__content">
+            <input type="text" class="form-input" placeholder="Поиск друзей..." id="searchFriendsInput">
+            <div class="friends-list" id="friendsListForMessaging">
+                <!-- Список друзей будет загружен через JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>

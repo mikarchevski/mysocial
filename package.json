@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "concurrently \"tsx watch src/index.ts\" \"sass --watch --poll public/scss/main.scss public/css/style.css\"",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",

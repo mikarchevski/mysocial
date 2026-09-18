@@ -5,3 +5,6 @@ dist/
 *.sql
 drizzle/
 *-lock.json
+docke*
+*qwen*
+.continue*

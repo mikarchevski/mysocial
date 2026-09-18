@@ -1,415 +1,459 @@
 // public/js/profile.js
 
-// ✅ Мгновенный рендер из кэша — убираем скелетоны до загрузки DOM
-(() => {
-    const cachedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (cachedUser) {
-        const currentUsernameEl = document.getElementById('currentUsername');
-        if (currentUsernameEl) {
-            currentUsernameEl.className = '';
-            currentUsernameEl.textContent = `${cachedUser.firstName} ${cachedUser.lastName}`;
-        }
+// Определяем, чей профиль мы смотрим
+function getProfileMode() {
+    const path = window.location.pathname;
+    const match = path.match(/^\/(\d+)$/);
 
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) logoutBtn.style.display = 'block';
-
-        // Если свой профиль — сразу подставляем имя (убираем скелетон)
-        const pathParts = window.location.pathname.split('/');
-        const reqId = parseInt(pathParts[1], 10);
-        if (cachedUser.id === reqId) {
-            const profileNameEl = document.getElementById('profileName');
-            if (profileNameEl) {
-                profileNameEl.textContent = `${cachedUser.firstName} ${cachedUser.lastName}`;
-            }
-        }
+    if (match) {
+        const userId = match[1];
+        // Проверяем, является ли это нашим профилем
+        return { type: 'other', userId: userId };
     }
-})();
+    return { type: 'me', userId: 'me' };
+}
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const pathParts = window.location.pathname.split('/');
-    const requestedUserId = pathParts[1];
+// Функция получения ID целевого пользователя
+function getTargetUserId() {
+    const path = window.location.pathname;
+    const match = path.match(/^\/(\d+)$/);
+    return match ? parseInt(match[1]) : null;
+}
 
-    if (!requestedUserId) {
-        window.location.href = '/';
-        return;
-    }
-
-    let currentUser = null;
+// Функция получения текущего пользователя
+async function getCurrentUserId() {
     try {
-        const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
-        if (meResponse.ok) {
-            const meData = await meResponse.json();
-            currentUser = meData.user;
-
-            // ✅ Сохраняем в кэш для мгновенного рендера при следующем визите
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-            const currentUsernameEl = document.getElementById('currentUsername');
-            if (currentUsernameEl) {
-                currentUsernameEl.className = '';
-                currentUsernameEl.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-            }
-
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) logoutBtn.style.display = 'block';
-        } else {
-            window.location.href = '/auth';
-            return;
-        }
-    } catch (err) {
-        console.error('Error fetching current user data:', err);
-        window.location.href = '/auth';
-        return;
-    }
-
-    const targetUserId = parseInt(requestedUserId, 10);
-    const isOwnProfile = currentUser.id === targetUserId;
-
-    // Показываем пункт "Редактировать профиль" в меню только на своём профиле
-    const editProfileBtn = document.getElementById('editProfileBtn');
-    if (editProfileBtn && isOwnProfile) {
-        editProfileBtn.style.display = 'inline-block';
-    }
-
-    // Скрываем форму нового поста, если это не свой профиль
-    const wallNewPost = document.getElementById('wallNewPost');
-    if (wallNewPost && !isOwnProfile) {
-        wallNewPost.style.display = 'none';
-    }
-
-    // Показываем/скрываем кнопку "Добавить в друзья"
-    // public/js/profile.js
-// Обновляем код кнопки "Добавить в друзья" (вместо существующего обработчика в строках 73-101)
-
-// Показываем/скрываем кнопку "Добавить в друзья"
-const addFriendBtn = document.getElementById('addFriendBtn');
-if (addFriendBtn && !isOwnProfile) {
-    addFriendBtn.style.display = 'block';
-
-    // Функция для обновления состояния кнопки
-    const updateAddFriendButton = (status) => {
-        switch(status) {
-            case 'friends':
-                addFriendBtn.textContent = 'Друзья';
-                addFriendBtn.disabled = true;
-                addFriendBtn.classList.add('profile-actions__btn--disabled'); // если хотим дополнительные стили
-                break;
-            case 'request_sent':
-                addFriendBtn.textContent = 'Заявка отправлена';
-                addFriendBtn.disabled = true;
-                addFriendBtn.classList.add('profile-actions__btn--disabled');
-                break;
-            case 'request_received':
-                addFriendBtn.textContent = 'Принять заявку';
-                addFriendBtn.disabled = false;
-                addFriendBtn.classList.remove('profile-actions__btn--disabled');
-                break;
-            case 'none':
-            default:
-                addFriendBtn.textContent = 'Добавить в друзья';
-                addFriendBtn.disabled = false;
-                addFriendBtn.classList.remove('profile-actions__btn--disabled');
-                break;
-        }
-    };
-
-    // Загружаем статус дружбы при загрузке
-    const loadFriendshipStatus = async () => {
-        try {
-            const response = await fetch(`/api/friends/status/${targetUserId}`, { 
-                credentials: 'include' 
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                updateAddFriendButton(data.status.status);
-            } else {
-                console.error('Ошибка загрузки статуса дружбы');
-            }
-        } catch (err) {
-            console.error('Ошибка при загрузке статуса дружбы:', err);
-        }
-    };
-
-    // Загружаем начальный статус
-    loadFriendshipStatus();
-
-    // Обработчик клика по кнопке
-    addFriendBtn.addEventListener('click', async () => {
-        const currentStatus = addFriendBtn.textContent;
-        
-        if (currentStatus === 'Добавить в друзья') {
-            try {
-                const response = await fetch(`/api/friends/${targetUserId}`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    alert(data.message || 'Заявка в друзья отправлена!');
-                    updateAddFriendButton('request_sent'); // Обновляем состояние кнопки
-                } else {
-                    const error = await response.json();
-                    alert(error.error || 'Ошибка при добавлении в друзья');
-                }
-            } catch (err) {
-                console.error('Ошибка при добавлении в друзья:', err);
-                alert('Ошибка сети. Попробуйте позже.');
-            }
-        } else if (currentStatus === 'Принять заявку') {
-            // Обработка принятия заявки (реализация на ваше усмотрение)
-            console.log('Реализовать принятие заявки');
-        }
-    });
-} else if (addFriendBtn) {
-    addFriendBtn.style.display = 'none';
-}
-
-    // Загружаем данные профиля
-    let userProfile = null;
-    try {
-        const response = await fetch(`/api/users/${targetUserId}`, { credentials: 'include' });
-
-        // Обновляем обработку ошибки 404
-        if (!response.ok) {
-            if (response.status === 404) {
-                // Перенаправляем на 404 страницу
-                window.location.href = '/404.html';
-                return;
-            } else {
-                throw new Error('Ошибка загрузки профиля');
-            }
-        }
-
-        const data = await response.json();
-        userProfile = data.user;
-
-        const set = (id, value) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = value;
-        };
-
-        set('profileName', `${userProfile.firstName} ${userProfile.lastName}`);
-        set('userCity', userProfile.city || 'Не указан');
-        set('userBirthday', formatDateOfBirth(userProfile.dateOfBirth));
-        set('userFamily', userProfile.familyStatus || 'Не указано');
-        set('userAbout', userProfile.about || 'Не указано');
-        set('userPhone', userProfile.phone || 'Не указан');
-        set('userGender', 'Не указан');
-        set('userEmail', userProfile.email || 'Не указан');
-
-        const userWebsiteEl = document.getElementById('userWebsite');
-        if (userWebsiteEl) {
-            userWebsiteEl.innerHTML = userProfile.website ? formatWebsite(userProfile.website) : 'Не указан';
-        }
-
-        document.title = `${userProfile.firstName} ${userProfile.lastName} | MySocial`;
-
-        if (isOwnProfile) {
-            initEditModal(userProfile);
-        }
-
-    } catch (error) {
-        console.error('Ошибка загрузки профиля:', error);
-        const profileNameEl = document.getElementById('profileName');
-        if (profileNameEl) profileNameEl.textContent = 'Ошибка загрузки';
-    }
-
-    // === Стена ===
-    initWall(targetUserId, currentUser, isOwnProfile);
-
-    // Обработчик выхода
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                const response = await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-                if (response.ok) {
-                    localStorage.removeItem('currentUser');
-                    window.location.href = '/auth';
-                }
-            } catch (err) {
-                console.error('Ошибка при выходе:', err);
-            }
-        });
-    }
-});
-
-// === Форматирование даты рождения ===
-function formatDateOfBirth(dateStr) {
-    if (!dateStr) return 'Не указана';
-    const date = new Date(dateStr);
-    const months = [
-        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-    ];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-// === Форматирование сайта ===
-function formatWebsite(url) {
-    if (!url) return 'Не указан';
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-    }
-    return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
-}
-
-// === Модальное окно редактирования ===
-function initEditModal(userProfile) {
-    const editBtn = document.getElementById('editProfileBtn');
-    const modal = document.getElementById('editModal');
-    const closeBtn = document.getElementById('closeEditModal');
-    const cancelBtn = document.getElementById('cancelEdit');
-    const form = document.getElementById('editProfileForm');
-
-    if (!editBtn || !modal || !form) return;
-
-    const fillForm = () => {
-        const cityEl = document.getElementById('editCity');
-        const phoneEl = document.getElementById('editPhone');
-        const websiteEl = document.getElementById('editWebsite');
-        const familyEl = document.getElementById('editFamily');
-        const aboutEl = document.getElementById('editAbout');
-
-        if (cityEl) cityEl.value = userProfile.city || '';
-        if (phoneEl) phoneEl.value = userProfile.phone || '';
-        if (websiteEl) websiteEl.value = userProfile.website || '';
-        if (familyEl) familyEl.value = userProfile.familyStatus || '';
-        if (aboutEl) aboutEl.value = userProfile.about || '';
-    };
-
-    editBtn.addEventListener('click', () => {
-        fillForm();
-        modal.style.display = 'flex';
-    });
-
-    const closeModal = () => {
-        modal.style.display = 'none';
-    };
-
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const body = {
-            city: document.getElementById('editCity')?.value || '',
-            phone: document.getElementById('editPhone')?.value || '',
-            website: document.getElementById('editWebsite')?.value || '',
-            familyStatus: document.getElementById('editFamily')?.value || '',
-            about: document.getElementById('editAbout')?.value || '',
-        };
-
-        try {
-            const response = await fetch(`/api/users/${userProfile.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify(body),
-            });
-
-            if (response.ok) {
-                closeModal();
-                window.location.reload();
-            } else {
-                const error = await response.json();
-                alert(error.error || 'Ошибка сохранения');
-            }
-        } catch (err) {
-            console.error('Ошибка сохранения:', err);
-            alert('Ошибка сети. Попробуйте позже.');
-        }
-    });
-}
-
-// === Функции для стены ===
-
-let wallCurrentFilter = 'all';
-
-function initWall(profileUserId, currentUser, isOwnProfile) {
-    const textarea = document.getElementById('wallTextarea');
-    const submitBtn = document.getElementById('wallSubmitBtn');
-    const postsContainer = document.getElementById('wallPosts');
-
-    if (!textarea || !submitBtn || !postsContainer) return;
-
-    // ✅ Загружаем с сервера
-    loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
-
-    submitBtn.addEventListener('click', async () => {
-        const text = textarea.value.trim();
-        if (!text) return;
-
-        submitBtn.disabled = true;
-
-        try {
-            const response = await fetch(`/api/posts/wall/${profileUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ content: text }),
-            });
-
-            if (response.ok) {
-                textarea.value = '';
-                textarea.style.height = 'auto';
-                loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
-            }
-        } catch (err) {
-            console.error('Ошибка публикации:', err);
-        } finally {
-            submitBtn.disabled = false;
-        }
-    });
-
-    textarea.addEventListener('input', () => {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-    });
-
-    textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-            submitBtn.click();
-        }
-    });
-
-    document.querySelectorAll('.wall__filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.wall__filter-btn').forEach(b => b.classList.remove('wall__filter-btn--active'));
-            btn.classList.add('wall__filter-btn--active');
-            wallCurrentFilter = btn.dataset.filter;
-            loadWallPosts(profileUserId, postsContainer, currentUser, wallCurrentFilter);
-        });
-    });
-}
-
-// ✅ Загрузка постов с сервера
-async function loadWallPosts(profileUserId, container, currentUser, filter = 'all') {
-    try {
-        const response = await fetch(`/api/posts/wall/${profileUserId}?filter=${filter}`, {
-            credentials: 'include',
+        const response = await fetch('/api/auth/me', {
+            credentials: 'include'
         });
         if (response.ok) {
             const data = await response.json();
-            renderWallPosts(data.posts, container, currentUser, profileUserId);
+            return data.user.id;
         }
-    } catch (err) {
-        console.error('Ошибка загрузки записей:', err);
-        container.innerHTML = '<div class="wall__empty"><p>Ошибка загрузки</p></div>';
+        return null;
+    } catch (error) {
+        console.error('Ошибка получения ID текущего пользователя:', error);
+        return null;
     }
 }
 
-function renderWallPosts(posts, container, currentUser, profileUserId) {
+// Форматирование даты
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// Экранирование HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Форматирование значения пола
+function formatGender(genderValue) {
+    if (!genderValue) return null;
+
+    const genderMap = {
+        'male': 'Мужской',
+        'female': 'Женский',
+        'other': 'Другой',
+        'm': 'Мужской',
+        'f': 'Женский'
+    };
+
+    return genderMap[genderValue.toLowerCase()] || genderValue;
+}
+
+// Функция обновления текста элемента
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = text;
+        // Убираем класс скелетона, если он был
+        el.classList.remove('skeleton', 'skeleton--medium', 'skeleton--short', 'skeleton--long');
+    }
+}
+
+// Загрузка данных профиля
+// Загрузка данных профиля
+async function loadProfileData() {
+    // Определяем ID пользователя из URL
+    const path = window.location.pathname;
+    const match = path.match(/^\/(\d+)$/);
+
+    if (!match) {
+        console.error('Не удалось определить ID пользователя из URL');
+        return;
+    }
+
+    const userId = parseInt(match[1]);
+    if (isNaN(userId)) {
+        console.error('Некорректный ID пользователя в URL');
+        return;
+    }
+
+    try {
+        // Проверяем, является ли это нашим профилем
+        const meResponse = await fetch('/api/auth/me', {
+            credentials: 'include'
+        });
+
+        let isMyProfile = false;
+        let userProfileData = null;
+
+        if (meResponse.ok) {
+            const meData = await meResponse.json();
+            isMyProfile = meData.user.id === userId;
+            userProfileData = meData.user;
+        }
+
+        // Загружаем данные профиля
+        let userData;
+        if (isMyProfile) {
+            // Если это наш профиль, используем эндпоинт /me
+            const response = await fetch('/api/auth/me', {
+                credentials: 'include'
+            });
+            if (!response.ok) throw new Error('Не удалось загрузить профиль');
+            const data = await response.json();
+            userData = data.user;
+        } else {
+            // Если чужой профиль, используем эндпоинт /api/users/:id
+            const response = await fetch(`/api/users/${userId}`, {
+                credentials: 'include'
+            });
+            if (!response.ok) {
+                // Если пользователь не найден, покажем соответствующее сообщение
+                if (response.status === 404) {
+                    document.getElementById('main-content').innerHTML = `
+                        <div class="error-card">
+                            <div class="error-content">
+                                <div class="error-icon">
+                                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                </div>
+                                <h1 class="error-title">404</h1>
+                                <p class="error-message">Пользователь не найден</p>
+                                <p class="error-description">Страница, которую вы искали, не существует или была удалена.</p>
+                                <div class="error-actions">
+                                    <a href="/" class="btn btn-primary">Вернуться на главную</a>
+                                    <button onclick="history.back()" class="btn btn-secondary">Вернуться назад</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                throw new Error('Не удалось загрузить профиль');
+            }
+            const data = await response.json();
+            userData = data.user;
+        }
+
+        // Заполняем данные
+        setText('profileName', `${userData.firstName} ${userData.lastName}` || 'Имя не указано');
+        setText('userGender', formatGender(userData.gender) || 'Не указан');
+        setText('userCity', userData.city || 'Не указано');
+        setText('userBirthday', formatDate(userData.dateOfBirth) || 'Не указано');
+        setText('userFamily', userData.familyStatus || 'Не указано');
+        setText('userAbout', userData.about || 'Не указано');
+        setText('userEmail', userData.email || 'Не указано');
+        setText('userPhone', userData.phone || 'Не указано');
+        setText('userWebsite', userData.website || 'Не указано');
+
+        // Обновляем имя в шапке, если это наш профиль
+        if (isMyProfile) {
+            const usernameSpan = document.getElementById('currentUsername');
+            if (usernameSpan) {
+                usernameSpan.textContent = `${userData.firstName} ${userData.lastName}`;
+                usernameSpan.classList.remove('skeleton', 'skeleton--medium');
+            }
+        }
+
+        // Обновляем аватар
+        const avatarImg = document.getElementById('userAvatar');
+        if (avatarImg) {
+            // Используем плейсхолдер, если аватар не установлен
+            avatarImg.src = '/images/default-avatar.svg';
+        }
+
+        // Кнопку "Ред." показываем ТОЛЬКО если это наш профиль
+        const editBtn = document.getElementById('editProfileBtn');
+        if (editBtn) {
+            editBtn.style.display = isMyProfile ? 'block' : 'none';
+        }
+
+        // Логика для кнопки "Добавить в друзья"
+        // Логика для кнопки "Добавить в друзья"
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn) {
+            if (isMyProfile) {
+                // Не показываем кнопку "Добавить в друзья" для своего профиля
+                addFriendBtn.style.display = 'none';
+            } else {
+                // Для чужого профиля проверяем статус дружбы
+                addFriendBtn.style.display = 'block'; // Убедимся, что кнопка видима перед проверкой статуса
+                await checkFriendshipStatus(userId, addFriendBtn);
+            }
+        }
+
+        // Загружаем стену пользователя
+        await loadWallPosts('all');
+
+    } catch (error) {
+        console.error('Ошибка загрузки профиля:', error);
+        document.getElementById('main-content').innerHTML = `
+            <div class="error-card">
+                <div class="error-content">
+                    <h2>Ошибка загрузки профиля</h2>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()" class="btn btn-primary">Попробовать снова</button>
+                </div>
+            </div>
+        `;
+    }
+}
+// Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
+// Проверка статуса дружбы и обновление кнопки
+async function checkFriendshipStatus(userId, button) {
+    console.log('Проверка статуса дружбы для userId:', userId);
+    console.log('Кнопка перед проверкой:', button);
+
+    try {
+        const response = await fetch(`/api/friends/status/${userId}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error('Ошибка проверки статуса дружбы:', response.statusText);
+            if (button) button.style.display = 'none';
+            return;
+        }
+
+        const data = await response.json();
+        console.log('Данные статуса дружбы:', data);
+
+        const status = data.status;
+        console.log('Статус дружбы:', status);
+
+        // Обновляем состояние кнопки напрямую, без клонирования
+        updateButtonByStatusDirect(button, status, userId);
+
+    } catch (error) {
+        console.error('Ошибка проверки статуса дружбы:', error);
+        if (button) button.style.display = 'none';
+    }
+}
+
+// Вспомогательная функция для прямого обновления кнопки
+function updateButtonByStatusDirect(button, status, userId) {
+    if (!button) {
+        console.error('Кнопка не найдена');
+        return;
+    }
+
+    // Очищаем предыдущие обработчики событий
+    button.onclick = null;
+
+    switch (status) {
+        case 'friends':
+            button.textContent = 'Друзья';
+            button.disabled = true;
+            button.classList.add('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            break;
+        case 'request_sent':
+            button.textContent = 'Заявка отправлена';
+            button.disabled = true;
+            button.classList.add('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            break;
+        case 'request_received':
+            button.textContent = 'Принять заявку';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => acceptFriendRequest(userId, button);
+            break;
+        case 'none':
+            button.textContent = 'Добавить в друзья';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => sendFriendRequest(userId, button);
+            break;
+        default:
+            button.textContent = 'Добавить в друзья';
+            button.disabled = false;
+            button.classList.remove('profile-actions__btn--disabled');
+            button.style.display = 'block';
+            button.onclick = () => sendFriendRequest(userId, button);
+            break;
+    }
+}
+
+// Вспомогательная функция для обновления кнопки
+function updateButtonByStatus(button, status, userId) {
+    // Очищаем обработчики событий
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+
+    const updatedButton = newButton;
+
+    switch (status) {
+        case 'friends':
+            updatedButton.textContent = 'Друзья';
+            updatedButton.disabled = true;
+            updatedButton.classList.add('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            break;
+        case 'request_sent':
+            updatedButton.textContent = 'Заявка отправлена';
+            updatedButton.disabled = true;
+            updatedButton.classList.add('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            break;
+        case 'request_received':
+            updatedButton.textContent = 'Принять заявку';
+            updatedButton.disabled = false;
+            updatedButton.classList.remove('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            updatedButton.onclick = () => acceptFriendRequest(userId, updatedButton);
+            break;
+        case 'none':
+            updatedButton.textContent = 'Добавить в друзья';
+            updatedButton.disabled = false;
+            updatedButton.classList.remove('profile-actions__btn--disabled');
+            updatedButton.style.display = 'block';
+            updatedButton.onclick = () => sendFriendRequest(userId, updatedButton);
+            break;
+    }
+}
+
+// Принятие заявки в друзья
+// Принятие заявки в друзья
+async function acceptFriendRequest(userId, button) {
+    try {
+        button.disabled = true;
+        button.textContent = 'Принимается...';
+
+        // Получаем список заявок
+        const requestsResponse = await fetch('/api/friends/requests', {
+            credentials: 'include'
+        });
+
+        if (!requestsResponse.ok) {
+            throw new Error('Не удалось получить список заявок');
+        }
+
+        const requestsData = await requestsResponse.json();
+        const request = requestsData.requests.find(r => r.fromUserId === userId);
+
+        if (!request) {
+            throw new Error('Заявка не найдена');
+        }
+
+        const response = await fetch(`/api/friends/accept/${request.id}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Не удалось принять заявку');
+        }
+
+        const data = await response.json();
+        console.log(data.message);
+
+        // Обновляем состояние кнопки
+        await checkFriendshipStatus(userId, button);
+
+        // Обновляем счётчики в сайдбаре
+        if (window.updateFriendRequestsBadge) {
+            window.updateFriendRequestsBadge();
+        }
+
+    } catch (error) {
+        console.error('Ошибка принятия заявки в друзья:', error);
+        // Восстанавливаем первоначальное состояние кнопки
+        await checkFriendshipStatus(userId, button);
+        alert('Не удалось принять заявку в друзья: ' + error.message);
+    }
+}
+
+// Отправка запроса в друзья
+// Отправка запроса в друзья
+async function sendFriendRequest(userId, button) {
+    console.log('Отправка запроса в друзья для userId:', userId);
+    try {
+        button.disabled = true;
+        button.textContent = 'Отправляется...';
+
+        const response = await fetch(`/api/friends/${userId}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        console.log('Ответ от сервера:', response);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Не удалось отправить запрос');
+        }
+
+        const data = await response.json();
+        console.log('Успешный ответ:', data);
+
+        // После успешной отправки обновляем статус дружбы
+        await checkFriendshipStatus(userId, button);
+
+    } catch (error) {
+        console.error('Ошибка отправки запроса в друзья:', error);
+        // Восстанавливаем первоначальное состояние кнопки
+        await checkFriendshipStatus(userId, button);
+        alert('Не удалось отправить запрос в друзья: ' + error.message);
+    }
+}
+
+// Загрузка записей на стене
+async function loadWallPosts(filter = 'all') {
+    // Определяем ID пользователя из URL
+    const path = window.location.pathname;
+    const match = path.match(/^\/(\d+)$/);
+
+    if (!match) {
+        console.error('Не удалось определить ID пользователя из URL');
+        return;
+    }
+
+    const userId = parseInt(match[1]);
+
+    try {
+        const res = await fetch(`/api/posts/wall/${userId}?filter=${filter}`, {
+            credentials: 'include'
+        });
+        if (!res.ok) throw new Error('Не удалось загрузить стену');
+
+        const data = await res.json();
+        renderWallPosts(data.posts || []);
+    } catch (error) {
+        console.error('Ошибка загрузки стены:', error);
+    }
+}
+
+// Отображение записей на стене
+// Отображение записей на стене
+function renderWallPosts(posts) {
+    const container = document.getElementById('wallPosts');
+    if (!container) return;
+
     if (!posts || posts.length === 0) {
         container.innerHTML = '<div class="wall__empty"><p>Пока нет записей на стене</p></div>';
         return;
@@ -460,9 +504,207 @@ function formatWallDate(dateString) {
     if (days < 7) return date.toLocaleDateString('ru-RU', { weekday: 'short' });
     return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+// Обработка отправки поста на стену
+// Обработка отправки поста на стену
+async function handleWallSubmit() {
+    const textarea = document.getElementById('wallTextarea');
+    if (!textarea) return;
+    const text = textarea.value.trim();
+    if (!text) return;
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    try {
+        // Определяем ID пользователя из URL
+        const path = window.location.pathname;
+        const match = path.match(/^\/(\d+)$/);
+
+        if (!match) {
+            console.error('Не удалось определить ID пользователя из URL');
+            return;
+        }
+
+        const userId = parseInt(match[1]);
+
+        const res = await fetch(`/api/posts/wall/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'credentials': 'include'
+            },
+            body: JSON.stringify({ content: text })
+        });
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Не удалось опубликовать');
+        }
+
+        textarea.value = '';
+        await loadWallPosts('all');
+    } catch (error) {
+        console.error('Ошибка публикации:', error);
+        alert('Не удалось опубликовать запись: ' + error.message);
+    }
 }
+
+// В файле public/js/profile.js, после строки с closeEditModalFn() добавляем:
+
+// Открытие модального окна редактирования
+function openEditModalFn() {
+    const modal = document.getElementById('editModal');
+    if (modal) {
+        // Загружаем текущие данные пользователя для заполнения формы
+        loadUserDataForEditModal();
+        modal.style.display = 'flex';
+    }
+}
+
+async function loadUserDataForEditModal() {
+    try {
+        const response = await fetch('/api/auth/me', {
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Не авторизован');
+        const { user } = await response.json();
+
+        // Заполняем поля данными пользователя
+        document.getElementById('editCity').value = user.city || '';
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editWebsite').value = user.website || '';
+        document.getElementById('editFamily').value = user.familyStatus || '';
+        document.getElementById('editAbout').value = user.about || '';
+    } catch (error) {
+        console.error('Ошибка загрузки данных для модального окна:', error);
+    }
+}
+
+// Также добавим в initializeProfileElements():
+
+// В функции initializeProfileElements() добавляем обработчики:
+
+const editProfileBtn = document.getElementById('editProfileBtn');
+if (editProfileBtn) editProfileBtn.onclick = openEditModalFn;
+
+// Переключение фильтров стены
+function switchWallFilter(filter) {
+    document.querySelectorAll('.wall__filter-btn').forEach(btn => {
+        btn.classList.remove('wall__filter-btn--active');
+    });
+    const activeBtn = document.querySelector(`.wall__filter-btn[data-filter="${filter}"]`);
+    if (activeBtn) activeBtn.classList.add('wall__filter-btn--active');
+    loadWallPosts(filter);
+}
+
+// Обработка сохранения формы редактирования профиля
+// В функции handleEditProfileSubmit() обновляем начало:
+
+// В файле public/js/profile.js, обновляем функцию handleEditProfileSubmit
+
+// Обработка сохранения формы редактирования профиля
+async function handleEditProfileSubmit(event) {
+    event.preventDefault();
+
+    try {
+        // Получаем ID текущего пользователя
+        const response = await fetch('/api/auth/me', {
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Не авторизован');
+        const { user } = await response.json();
+
+        const data = {
+            city: document.getElementById('editCity').value || undefined,
+            phone: document.getElementById('editPhone').value || undefined,
+            website: document.getElementById('editWebsite').value || undefined,
+            familyStatus: document.getElementById('editFamily').value || undefined,
+            about: document.getElementById('editAbout').value || undefined
+        };
+
+        // Убираем undefined значения
+        Object.keys(data).forEach(key => {
+            if (data[key] === undefined || data[key] === '') {
+                delete data[key];
+            }
+        });
+
+        const res = await fetch(`/api/users/${user.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'credentials': 'include'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Ошибка сервера: ${errorText}`);
+        }
+
+        closeEditModalFn();
+        await loadProfileData(); // Обновляем данные профиля после сохранения
+    } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        alert('Не удалось сохранить изменения: ' + error.message);
+    }
+}
+
+// Закрытие модального окна
+function closeEditModalFn() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Инициализация профиля
+function initProfile() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeProfileElements();
+        });
+    } else {
+        initializeProfileElements();
+    }
+}
+
+// Вспомогательная функция инициализации элементов
+// В файле public/js/profile.js, полностью переписываем функцию initializeProfileElements()
+
+// Вспомогательная функция инициализации элементов
+function initializeProfileElements() {
+    // Устанавливаем обработчики после небольшой задержки для гарантии загрузки DOM
+    setTimeout(() => {
+        // Обработчики для стен
+        const wallSubmitBtn = document.getElementById('wallSubmitBtn');
+        if (wallSubmitBtn) wallSubmitBtn.onclick = handleWallSubmit;
+
+        // Обработчики для формы редактирования
+        const editProfileForm = document.getElementById('editProfileForm');
+        if (editProfileForm) editProfileForm.onsubmit = handleEditProfileSubmit;
+
+        // Обработчики для модального окна
+        const closeEditModal = document.getElementById('closeEditModal');
+        if (closeEditModal) closeEditModal.onclick = closeEditModalFn;
+
+        const cancelEdit = document.getElementById('cancelEdit');
+        if (cancelEdit) cancelEdit.onclick = closeEditModalFn;
+
+        // Обработчики для фильтров стены
+        const filterBtns = document.querySelectorAll('.wall__filter-btn');
+        filterBtns.forEach(btn => {
+            btn.onclick = () => switchWallFilter(btn.dataset.filter);
+        });
+
+        // Кнопка редактирования профиля - устанавливаем обработчик отдельно
+        const editProfileBtn = document.getElementById('editProfileBtn');
+        if (editProfileBtn) {
+            // Очищаем предыдущие обработчики и устанавливаем новый
+            editProfileBtn.removeEventListener('click', openEditModalFn);
+            editProfileBtn.addEventListener('click', openEditModalFn);
+        }
+
+        // Загружаем данные профиля
+        loadProfileData();
+    }, 100);
+}
+
+// Экспортируем функцию для использования в других модулях
+window.initProfile = initProfile;

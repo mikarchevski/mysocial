@@ -1,16 +1,26 @@
 // public/js/friends.js
 
-// Функция инициализации страницы друзей
-async function initFriendsPage() {
+// public/js/friends.js
+
+let currentFriendsTab = 'friends';
+
+async function initFriends() {
+    // Проверяем, доступны ли необходимые элементы
+    if (!document.getElementById('friendsList')) {
+        console.log('Элементы друзей еще не загружены, ждем 100мс...');
+        setTimeout(initFriends, 100);
+        return;
+    }
+
     console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДРУЗЕЙ ===');
     console.log('Document readyState:', document.readyState);
-    
+
     let currentUser = null;
-    
+
     try {
         const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
         console.log('Ответ от /api/auth/me:', meResponse.status);
-        
+
         if (meResponse.ok) {
             const meData = await meResponse.json();
             console.log('Данные текущего пользователя:', meData);
@@ -38,11 +48,11 @@ async function initFriendsPage() {
     // Инициализация вкладок
     console.log('Инициализация вкладок...');
     initTabs();
-    
+
     // Загрузка друзей по умолчанию
     console.log('Загрузка списка друзей по умолчанию...');
-    loadFriendsList('friends');
-    
+    loadFriendsData(currentFriendsTab);
+
     // Обработчик выхода
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -60,18 +70,23 @@ async function initFriendsPage() {
             }
         });
     }
-    
+
     console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДРУЗЕЙ ===');
 }
+
+// ... остальные функции остаются без изменений ...
+
+// ... остальные функции остаются без изменений ...
 
 // Инициализация вкладок
 function initTabs() {
     console.log('Инициализация вкладок');
     const filterButtons = document.querySelectorAll('.friends-filter-btn');
     const menuLinks = document.querySelectorAll('.friends-menu__link');
-    
+
     const handleTabChange = (tabType) => {
         console.log('Переключение вкладки на:', tabType);
+        currentFriendsTab = tabType;
 
         // Обновляем активные кнопки фильтров
         filterButtons.forEach(btn => {
@@ -81,7 +96,7 @@ function initTabs() {
                 btn.classList.remove('friends-filter-btn--active');
             }
         });
-        
+
         // Обновляем активные ссылки в меню
         menuLinks.forEach(link => {
             if (link.dataset.tab === tabType) {
@@ -92,18 +107,18 @@ function initTabs() {
                 link.classList.add('friends-menu__link');
             }
         });
-        
+
         // Загружаем соответствующий список
-        loadFriendsList(tabType);
+        loadFriendsData(tabType);
     };
-    
+
     // Обработчики для кнопок фильтров
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             handleTabChange(btn.dataset.tab);
         });
     });
-    
+
     // Обработчики для ссылок в меню
     menuLinks.forEach(link => {
         link.addEventListener('click', (e) => {
@@ -113,60 +128,52 @@ function initTabs() {
     });
 }
 
-// Загрузка списка друзей/заявок
-async function loadFriendsList(tabType) {
-    console.log('Загрузка списка:', tabType);
-    const friendsList = document.getElementById('friendsList');
-    
+async function loadFriendsData(tab) {
+    const container = document.getElementById('friendsList');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">Загрузка...</div>';
+
     try {
-        if (tabType === 'friends') {
-            // Загрузка списка друзей
-            const response = await fetch('/api/friends/list', { credentials: 'include' });
-            console.log('Ответ для друзей:', response.status);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Данные друзей:', data);
+        // Используем правильные эндпоинты
+        const endpoint = tab === 'requests' ? '/api/friends/requests' : '/api/friends/list';
+        const response = await fetch(endpoint, { credentials: 'include' });
+        console.log('Ответ для', tab, ':', response.status);
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Данные для', tab, ':', data);
+
+            if (tab === 'requests') {
+                renderFriendRequests(data.requests || []);
+            } else {
                 renderFriendsList(data.friends || []);
-            } else {
-                friendsList.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки списка друзей</p></div>';
             }
-        } else if (tabType === 'requests') {
-            // Загрузка заявок в друзья
-            console.log('Запрос заявок...');
-            const response = await fetch('/api/friends/requests', { credentials: 'include' });
-            console.log('Ответ для заявок:', response.status);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Данные заявок:', data);
-                renderRequestsList(data.requests || []);
-            } else {
-                friendsList.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки заявок в друзья</p></div>';
-            }
+        } else {
+            container.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки данных</p></div>';
         }
-    } catch (err) {
-        console.error('Ошибка загрузки списка:', err);
-        friendsList.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки данных</p></div>';
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        container.innerHTML = '<div class="friends-list__empty"><p>Ошибка загрузки данных</p></div>';
     }
 }
 
-// Рендер списка друзей
 function renderFriendsList(friends) {
     console.log('Отрисовка списка друзей:', friends);
-    const friendsList = document.getElementById('friendsList');
-    
+    const container = document.getElementById('friendsList');
+    if (!container) return;
+
     if (!friends || friends.length === 0) {
-        friendsList.innerHTML = '<div class="friends-list__empty"><p>У вас пока нет друзей</p></div>';
+        container.innerHTML = '<div class="friends-list__empty"><p>У вас пока нет друзей</p></div>';
         return;
     }
-    
-    friendsList.innerHTML = friends.map(friend => `
-        <div class="friend-item">
+
+    container.innerHTML = friends.map(friend => `
+        <div class="friend-item" data-user-id="${friend.id}">
             <div class="friend-item__avatar">
-                <img src="/images/default-avatar.svg" alt="${friend.firstName} ${friend.lastName}">
+                <img src="${friend.avatar || '/images/default-avatar.svg'}" alt="${friend.firstName} ${friend.lastName}">
             </div>
             <div class="friend-item__info">
-                <div class="friend-item__name">${escapeHtml(friend.firstName)} ${escapeHtml(friend.lastName)}</div>
-                <div class="friend-item__status">В сети</div>
+                <a href="/${friend.id}" class="friend-item__name spa-link">${escapeHtml(friend.firstName)} ${escapeHtml(friend.lastName)}</a>
             </div>
             <div class="friend-item__actions">
                 <button class="friend-item__action-btn" onclick="location.href='/${friend.id}'">Профиль</button>
@@ -176,29 +183,28 @@ function renderFriendsList(friends) {
     `).join('');
 }
 
-// Рендер списка заявок
-function renderRequestsList(requests) {
+function renderFriendRequests(requests) {
     console.log('Отрисовка заявок:', requests);
-    const friendsList = document.getElementById('friendsList');
-    
+    const container = document.getElementById('friendsList');
+    if (!container) return;
+
     if (!requests || requests.length === 0) {
         console.log('Нет заявок для отображения');
-        friendsList.innerHTML = '<div class="friends-list__empty"><p>Нет заявок в друзья</p></div>';
+        container.innerHTML = '<div class="friends-list__empty"><p>Нет заявок в друзья</p></div>';
         return;
     }
-    
-    friendsList.innerHTML = requests.map(request => `
-        <div class="request-item">
+
+    container.innerHTML = requests.map(request => `
+        <div class="request-item" data-request-id="${request.id}">
             <div class="request-item__avatar">
-                <img src="/images/default-avatar.svg" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
+                <img src="${request.avatar || '/images/default-avatar.svg'}" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
             </div>
             <div class="request-item__info">
-                <div class="request-item__name">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</div>
-                <div class="request-item__status">Хочет добавить вас в друзья</div>
+                <a href="/${request.id}" class="request-item__name spa-link">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</a>
             </div>
             <div class="request-item__actions">
-                <button class="accept-btn" onclick="acceptRequest(${request.id}, this)">Принять</button>
-                <button class="decline-btn" onclick="declineRequest(${request.id}, this)">Отклонить</button>
+                <button class="accept-btn" onclick="acceptFriendRequest(${request.id})">Принять</button>
+                <button class="decline-btn" onclick="rejectFriendRequest(${request.id})">Отклонить</button>
             </div>
         </div>
     `).join('');
@@ -211,19 +217,18 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Принятие заявки в друзья
-async function acceptRequest(requestId, button) {
+async function acceptFriendRequest(requestId) {
     try {
         const response = await fetch(`/api/friends/accept/${requestId}`, {
             method: 'POST',
             credentials: 'include',
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             alert(data.message || 'Заявка принята!');
             // Обновляем список заявок
-            loadFriendsList('requests');
+            loadFriendsData(currentFriendsTab);
             // Обновляем счетчик заявок в бейдже
             if (window.updateFriendRequestsBadge) {
                 window.updateFriendRequestsBadge();
@@ -238,19 +243,18 @@ async function acceptRequest(requestId, button) {
     }
 }
 
-// Отклонение заявки в друзья
-async function declineRequest(requestId, button) {
+async function rejectFriendRequest(requestId) {
     try {
         const response = await fetch(`/api/friends/decline/${requestId}`, {
             method: 'POST',
             credentials: 'include',
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             alert(data.message || 'Заявка отклонена!');
             // Обновляем список заявок
-            loadFriendsList('requests');
+            loadFriendsData(currentFriendsTab);
             // Обновляем счетчик заявок в бейдже
             if (window.updateFriendRequestsBadge) {
                 window.updateFriendRequestsBadge();
@@ -271,26 +275,10 @@ function sendMessage(userId) {
     window.location.href = `/dialogs#/dialog/${userId}`;
 }
 
-// ГЛОБАЛЬНАЯ РЕГИСТРАЦИЯ ФУНКЦИИ - ОСНОВНОЕ ИСПРАВЛЕНИЕ
-window.initFriendsPage = initFriendsPage;
+window.initFriends = initFriends;
 
-// Запускаем инициализацию при загрузке DOM, если это первая загрузка страницы
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
-            if (typeof window.initFriendsPage === 'function') {
-                window.initFriendsPage();
-            }
-        }
-    });
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initFriends };
 } else {
-    // Если документ уже загружен, проверяем URL и запускаем при необходимости
-    if (window.location.pathname === '/friends' || window.location.pathname.includes('/friends')) {
-        // Используем setTimeout для обеспечения завершения загрузки DOM
-        setTimeout(function() {
-            if (typeof window.initFriendsPage === 'function') {
-                window.initFriendsPage();
-            }
-        }, 0); 
-    }
+    window.initFriends = initFriends;
 }
