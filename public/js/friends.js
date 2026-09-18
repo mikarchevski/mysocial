@@ -177,7 +177,7 @@ function renderFriendsList(friends) {
             </div>
             <div class="friend-item__actions">
                 <button class="friend-item__action-btn" onclick="location.href='/${friend.id}'">Профиль</button>
-                <button class="friend-item__action-btn" onclick="sendMessage(${friend.id})">Написать</button>
+                <button class="friend-item__action-btn" onclick="sendDirectMessage(${friend.id})">Написать</button>
             </div>
         </div>
     `).join('');
@@ -270,9 +270,25 @@ async function rejectFriendRequest(requestId) {
 }
 
 // Отправка сообщения
-function sendMessage(userId) {
-    // Перенаправляем на диалог с пользователем
-    window.location.href = `/dialogs#/dialog/${userId}`;
+function sendDirectMessage(userId) {
+    // Используем SPA-навигацию вместо полной перезагрузки
+    if (window.location.pathname === '/dialogs') {
+        // Если уже на странице диалогов, просто открываем нужный диалог
+        if (typeof openDialog === 'function') {
+            openDialog(userId);
+        }
+    } else {
+        // Иначе переходим на страницу диалогов через роутер
+        window.history.pushState({ path: '/dialogs' }, '', '/dialogs');
+        if (typeof loadPageContent === 'function') {
+            loadPageContent('/dialogs').then(() => {
+                // После загрузки страницы диалогов открываем нужный диалог
+                if (typeof openDialog === 'function') {
+                    setTimeout(() => openDialog(userId), 100);
+                }
+            });
+        }
+    }
 }
 
 window.initFriends = initFriends;

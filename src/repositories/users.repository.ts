@@ -45,6 +45,7 @@ export default class UsersRepository {
         id: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
+        publicKey: users.publicKey,
       })
       .from(users)
       .where(

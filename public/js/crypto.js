@@ -62,35 +62,70 @@ async function encryptMessage(plaintext, recipientPublicKeyJwkString) {
 }
 
 // 3. Расшифровка сообщения (для получателя)
+// 3. Расшифровка сообщения (для получателя)
+// 3. Расшифровка сообщения (для получателя)
 async function decryptMessage(encryptedContentJsonString, encryptedKeyBase64, privateKeyJwkString) {
   const privJwk = JSON.parse(privateKeyJwkString);
   const privateKey = await window.crypto.subtle.importKey(
     "jwk", privJwk, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]
   );
 
-  const fromBase64 = (base64) => Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  // Функция для безопасного декодирования Base64
+  const fromBase64 = (base64) => {
+    // Удаляем пробелы, новые строки и другие пробельные символы
+    const cleanBase64 = base64.replace(/\s/g, '');
+    // Проверяем, содержит ли строка только допустимые символы Base64
+    if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+      throw new Error('Недопустимые символы в строке Base64');
+    }
+    // Убедимся, что строка имеет правильную длину для Base64 (кратна 4)
+    const paddedBase64 = cleanBase64.padEnd((Math.ceil(cleanBase64.length / 4) * 4), '=');
+    const binaryString = atob(paddedBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  };
 
-  // 1. Расшифровываем AES-ключ своим приватным ключом
-  const encryptedKeyBytes = fromBase64(encryptedKeyBase64);
-  const rawAesKey = await window.crypto.subtle.decrypt(
-    { name: "RSA-OAEP" }, privateKey, encryptedKeyBytes
-  );
+  try {
+    // 1. Расшифровываем AES-ключ своим приватным ключом
+    const encryptedKeyBytes = fromBase64(encryptedKeyBase64);
+    const rawAesKey = await window.crypto.subtle.decrypt(
+      { name: "RSA-OAEP" }, privateKey, encryptedKeyBytes
+    );
 
-  // 2. Импортируем AES-ключ
-  const aesKey = await window.crypto.subtle.importKey(
-    "raw", rawAesKey, { name: "AES-GCM" }, true, ["decrypt"]
-  );
+    // 2. Импортируем AES-ключ
+    const aesKey = await window.crypto.subtle.importKey(
+      "raw", rawAesKey, { name: "AES-GCM" }, true, ["decrypt"]
+    );
 
-  // 3. Расшифровываем само сообщение
-  const content = JSON.parse(encryptedContentJsonString);
-  const iv = fromBase64(content.iv);
-  const ciphertext = fromBase64(content.data);
+    // 3. Расшифровываем само сообщение
+    // Парсим JSON и проверяем его структуру
+    let content;
+    try {
+      content = JSON.parse(encryptedContentJsonString);
+    } catch (parseErr) {
+      console.error('Ошибка парсинга JSON зашифрованного содержимого:', parseErr);
+      throw new Error('Некорректный формат зашифрованного содержимого');
+    }
 
-  const decrypted = await window.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv }, aesKey, ciphertext
-  );
+    if (!content.iv || !content.data) {
+      throw new Error('Отсутствуют необходимые поля в зашифрованном содержимом');
+    }
 
-  return new TextDecoder().decode(decrypted);
+    const iv = fromBase64(content.iv);
+    const ciphertext = fromBase64(content.data);
+
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv }, aesKey, ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
+  } catch (error) {
+    console.error('Ошибка при расшифровке:', error);
+    throw error;
+  }
 }
 
 // Делаем функции доступными глобально

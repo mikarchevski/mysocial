@@ -80,6 +80,8 @@ export default class AuthService {
       about: user.about,
       // Добавляем пол, если оно существует в базе данных
       gender: user.gender || null, // Предполагаем, что поле может быть в базе данных
+      publicKey: user.publicKey, // Добавляем publicKey
+      createdAt: user.createdAt
     };
   }
 
