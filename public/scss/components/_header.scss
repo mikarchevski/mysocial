@@ -1,4 +1,6 @@
 // Header
+
+@use '../variables' as *;
 .header {
   background: #4a76a8;
   color: white;
@@ -12,6 +14,55 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+   &__search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  &__search-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1;
+
+    &.moved {
+       transform: translateX(35px);
+      border-radius: 6px 0 0 6px;
+    }
+  }
+
+  &__search-icon {
+    width: 20px;
+    height: 20px;
+    color: #666;
+    transition: all 0.3s ease;
+  }
+
+  &__search-input {
+    width: 0;
+    height: 40px;
+    padding: 0 12px 0 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    // margin-left: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+
+    &.active {
+      width: 200px;
+      opacity: 1;
+      visibility: visible;
+    }
   }
 
   &__logo {
@@ -36,5 +87,114 @@
     &:hover {
       background: rgba(255, 255, 255, 0.3);
     }
+  }
+}
+
+
+.search-wrapper {
+  position: relative;
+  display: inline-block; // или flex, в зависимости от твоей верстки
+}
+
+// Выпадающий список результатов
+.search-results-dropdown {
+  position: absolute;
+  top: calc(100% + 8px); // Отступ 8px от поля ввода
+  right: 0;
+  width: 320px;
+  background-color: $search-bg;
+  border: 1px solid $search-border;
+  border-radius: $radius;
+  box-shadow: $shadow-dropdown;
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+  
+  // Анимация появления
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  // Кастомизация скроллбара (для WebKit браузеров)
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: $radius;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// Элемент результата поиска (ссылка)
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  text-decoration: none;
+  color: $text-primary;
+  border-bottom: 1px solid $search-border;
+  transition: background-color 0.15s ease;
+
+  &:first-child {
+    border-radius: $radius $radius 0 0;
+  }
+
+  &:last-child {
+    border-bottom: none;
+    border-radius: 0 0 $radius $radius;
+  }
+
+  &:hover {
+    background-color: $search-hover-bg;
+
+    .search-result-name {
+      color: $accent-color;
+    }
+  }
+}
+
+// Имя пользователя в результате
+.search-result-name {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: color 0.15s ease;
+}
+
+// Город пользователя в результате
+.search-result-city {
+  font-size: 12px;
+  color: $text-secondary;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Сообщения (загрузка, пусто, ошибка)
+.search-message {
+  padding: 20px 16px;
+  text-align: center;
+  color: $text-secondary;
+  font-size: 14px;
+
+  &.error {
+    color: $text-error;
+    font-weight: 500;
   }
 }
