@@ -352,6 +352,7 @@ function createViewTabContent() {
 }
 
 // Рендер открытого диалога
+// Рендер открытого диалога
 function renderOpenDialog(partnerId, partnerName, messages) {
     const container = document.getElementById('openDialogsList');
     if (!container) return;
@@ -361,52 +362,76 @@ function renderOpenDialog(partnerId, partnerName, messages) {
         partnerName = 'Собеседник';
     }
 
-    container.innerHTML = `
-        <div class="dialog-messages-header">
-            <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
-            <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
-        </div>
-        <div class="messages-container" id="messagesContainer">
-            ${messages.map(msg => `
-                <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
-                    <div class="message__text">${escapeHtml(msg.text || msg.encryptedContent)}</div>
-                    <div class="message__time">${formatTime(msg.createdAt)}</div>
-                </div>
-            `).join('')}
-        </div>
-        <div class="message-input-area">
-            <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
-            <button onclick="sendChatMessage(${partnerId})">Отправить</button>
-        </div>
-    `;
+    // Расшифровываем сообщения перед отображением
+    renderMessages(messages).then(decryptedMessages => {
+        container.innerHTML = `
+            <div class="dialog-messages-header">
+                <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+                <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
+            </div>
+            <div class="messages-container" id="messagesContainer">
+                ${decryptedMessages.map(msg => `
+                    <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
+                        <div class="message__text">${escapeHtml(msg.text)}</div>
+                        <div class="message__time">${formatTime(msg.createdAt)}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="message-input-area">
+                <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
+                <button onclick="sendChatMessage(${partnerId})">Отправить</button>
+            </div>
+        `;
 
-    // Прокручиваем к последнему сообщению
-    const messagesContainer = document.getElementById('messagesContainer');
-    if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    // Добавляем обработчики для автоподстройки высоты textarea
-    const textarea = document.getElementById('messageTextarea');
-    if (textarea) {
-        // Функция для автоподстройки высоты
-        function adjustTextareaHeight() {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 168) + 'px'; // 168px примерно равно 12 строкам
+        // Прокручиваем к последнему сообщению
+        const messagesContainer = document.getElementById('messagesContainer');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Обработчики событий
-        textarea.addEventListener('input', adjustTextareaHeight);
-        textarea.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendChatMessage(partnerId);
+        // Добавляем обработчики для автоподстройки высоты textarea
+        const textarea = document.getElementById('messageTextarea');
+        if (textarea) {
+            // Функция для автоподстройки высоты
+            function adjustTextareaHeight() {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 168) + 'px'; // 168px примерно равно 12 строкам
             }
-        });
 
-        // Изначальная настройка высоты
-        adjustTextareaHeight();
-    }
+            // Обработчики событий
+            textarea.addEventListener('input', adjustTextareaHeight);
+            textarea.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage(partnerId);
+                }
+            });
+
+            // Изначальная настройка высоты
+            adjustTextareaHeight();
+        }
+    }).catch(err => {
+        console.error('Ошибка при расшифровке сообщений:', err);
+        // Отображаем зашифрованные сообщения в случае ошибки
+        container.innerHTML = `
+            <div class="dialog-messages-header">
+                <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+                <h3 class="dialog-partner-name">${escapeHtml(partnerName)}</h3>
+            </div>
+            <div class="messages-container" id="messagesContainer">
+                ${messages.map(msg => `
+                    <div class="message ${msg.senderId === partnerId ? 'message--received' : 'message--sent'}">
+                        <div class="message__text">${escapeHtml(msg.encryptedContent)}</div>
+                        <div class="message__time">${formatTime(msg.createdAt)}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="message-input-area">
+                <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
+                <button onclick="sendChatMessage(${partnerId})">Отправить</button>
+            </div>
+        `;
+    });
 }
 
 // Показать список диалогов
@@ -497,12 +522,19 @@ async function renderMessages(messagesFromServer) {
     const myPrivateKey = localStorage.getItem('my_private_key');
     if (!myPrivateKey) {
         console.error('Приватный ключ не найден!');
-        return;
+        // Возвращаем оригинальные сообщения с пустым текстом
+        return messagesFromServer.map(msg => ({...msg, text: '⚠️ Ключ не найден'}));
     }
 
     const decryptedMessages = await Promise.all(
         messagesFromServer.map(async (msg) => {
             try {
+                // Проверяем, что у сообщения есть необходимые поля
+                if (!msg.encryptedContent || !msg.encryptedKey) {
+                    console.warn('Отсутствуют зашифрованные данные в сообщении', msg.id);
+                    return { ...msg, text: '⚠️ Нет зашифрованных данных' };
+                }
+                
                 const plaintext = await decryptMessage(
                     msg.encryptedContent,
                     msg.encryptedKey,
@@ -511,13 +543,17 @@ async function renderMessages(messagesFromServer) {
                 return { ...msg, text: plaintext }; // Добавляем расшифрованный текст
             } catch (err) {
                 console.error('Ошибка расшифровки сообщения', msg.id, err);
+                console.error('Данные сообщения:', {
+                    encryptedContent: msg.encryptedContent,
+                    encryptedKey: msg.encryptedKey,
+                    senderId: msg.senderId
+                });
                 return { ...msg, text: '⚠️ Ошибка расшифровки' };
             }
         })
     );
 
-    // Теперь рендерим decryptedMessages, используя msg.text
-    console.log(decryptedMessages);
+    return decryptedMessages;
 }
 
 // Форматирование времени

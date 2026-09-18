@@ -28,6 +28,7 @@ export default class MessagesRepository {
         senderId: messages.senderId,
         recipientId: messages.recipientId,
         encryptedContent: messages.encryptedContent,
+        encryptedKey: messages.encryptedKey, // Добавлено
         createdAt: messages.createdAt,
         isRead: messages.isRead,
       })
@@ -45,6 +46,7 @@ export default class MessagesRepository {
         id: messages.id,
         senderId: messages.senderId,
         encryptedContent: messages.encryptedContent,
+        encryptedKey: messages.encryptedKey, // Добавлено
         createdAt: messages.createdAt,
         isRead: messages.isRead,
       })
