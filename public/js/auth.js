@@ -1,5 +1,8 @@
 // public/js/auth.js
 
+// Удаляем неправильный импорт и используем глобальную функцию
+// import generateKeyPair from './crypto.js'; // УДАЛИТЬ ЭТУ СТРОКУ
+
 document.addEventListener('DOMContentLoaded', () => {
     // Переключение табов
     const tabs = document.querySelectorAll('.auth-tab');
@@ -123,16 +126,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                // Используем глобальную функцию из crypto.js
+                const { publicKey, privateKey } = await window.generateKeyPair();
+
+                localStorage.setItem('my_private_key', privateKey);
+
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        firstName: formData.get('firstName'),
+                        lastName: formData.get('lastName'),
+                        email: formData.get('email'),
+                        dateOfBirth: formData.get('dateOfBirth'),
+                        password: formData.get('password'),
+                        confirmPassword: formData.get('confirmPassword'),
+                        publicKey: publicKey,
+                    }),
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                       window.location.href = '/';
+                    window.location.href = '/';
 
                 } else {
                     showError(registerForm, result.error || 'Ошибка регистрации');
