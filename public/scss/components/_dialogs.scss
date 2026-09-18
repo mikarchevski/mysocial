@@ -182,14 +182,13 @@
     object-fit: cover;
   }
 
-  .dialogs-list__badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
+  
+}
+.dialogs-list__badge {
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
-    background: #ff3347;
+    background: #5181b8;
     color: white;
     font-size: 12px;
     font-weight: 600;
@@ -198,8 +197,6 @@
     align-items: center;
     justify-content: center;
   }
-}
-
 .dialogs-list__info {
   flex: 1;
   min-width: 0;

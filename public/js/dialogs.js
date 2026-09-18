@@ -263,24 +263,41 @@ async function loadDialogsList() {
 function renderDialogsList(dialogs) {
     const container = document.getElementById('dialogsList');
     if (!container) return;
-
+    
+    console.log('Получены диалоги:', dialogs); // 🔥 Для отладки
+    
     if (!dialogs || dialogs.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Нет активных диалогов</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>У вас пока нет диалогов</p></div>';
         return;
     }
-
-    container.innerHTML = dialogs.map(dialog => `
-        <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId}, '${escapeHtml(dialog.partnerName)}')">
-            <div class="dialogs-list__avatar">
-                <img src="${dialog.avatar || '/images/default-avatar.svg'}" alt="${escapeHtml(dialog.partnerName)}">
-                ${dialog.unreadCount > 0 ? `<div class="dialogs-list__badge">${dialog.unreadCount}</div>` : ''}
+    
+    container.innerHTML = dialogs.map(dialog => {
+        // 🔥 Получаем имя из разных возможных полей
+        const firstName = dialog.firstName || dialog.user?.firstName || '';
+        const lastName = dialog.lastName || dialog.user?.lastName || '';
+        const userName = `${firstName} ${lastName}`.trim() || 'Пользователь';
+        
+        // 🔥 Для отладки выводим, что есть в dialog
+        console.log(`Диалог ${dialog.partnerId}:`, {
+            firstName: dialog.firstName,
+            lastName: dialog.lastName,
+            user: dialog.user,
+            partnerId: dialog.partnerId
+        });
+        
+        return `
+            <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId}, '${escapeHtml(userName)}')">
+                <div class="dialogs-list__avatar">
+                    <img src="/images/default-avatar.svg" alt="${escapeHtml(userName)}">
+                    ${dialog.unreadCount > 0 ? `<span class="dialogs-list__badge">${dialog.unreadCount}</span>` : ''}
+                </div>
+                <div class="dialogs-list__info">
+                    <span class="dialogs-list__name">${escapeHtml(userName)}</span>
+                    <span class="dialogs-list__last-message">${escapeHtml(dialog.lastMessage || 'Нет сообщений')}</span>
+                </div>
             </div>
-            <div class="dialogs-list__info">
-                <span class="dialogs-list__name">${escapeHtml(dialog.partnerName)}</span>
-                <span class="dialogs-list__last-message">${escapeHtml(dialog.lastMessage)}</span>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // ==========================================
