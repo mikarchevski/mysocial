@@ -1,3 +1,4 @@
+@charset "UTF-8";
 h1, .h1 {
   font-size: 2.5rem;
   font-weight: 600;
@@ -1556,6 +1557,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 .request-item__actions .decline-btn:hover {
   background: #e4e6eb;
+}
+
+/* Стили для неактивной кнопки */
+.profile-actions__btn--disabled {
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+.profile-actions__btn--disabled:hover {
+  background-color: #cccccc !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .wall {

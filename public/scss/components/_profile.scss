@@ -615,3 +615,18 @@
     }
   }
 }
+
+
+/* Стили для неактивной кнопки */
+.profile-actions__btn--disabled {
+    background-color: #cccccc !important;
+    color: #666666 !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
+
+.profile-actions__btn--disabled:hover {
+    background-color: #cccccc !important;
+    transform: none !important;
+    box-shadow: none !important;
+}

@@ -149,6 +149,9 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
+  // Пример для src/routes/friends.ts
+
+
   // Получить статус дружбы с пользователем
   app.get(
     "/status/:userId",
