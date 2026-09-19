@@ -82,29 +82,67 @@ document.addEventListener('DOMContentLoaded', () => {
     window.sessionPrivateKey = null;
 
     // === ОБРАБОТКА ВХОДА ===
+    // === ОБРАБОТКА ВХОДА ===
     const loginForm = document.getElementById('regForm-loginForm');
     const loginSubmitBtn = loginForm ? loginForm.querySelector('.regForm__button') : null;
 
     if (loginForm) {
         loginForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
+            e.preventDefault(); // Всегда предотвращаем стандартную отправку
+
             const errorEl = document.getElementById('regForm-loginError');
             errorEl.textContent = '';
             errorEl.style.display = 'none';
 
-            const email = loginForm.querySelector('input[name="email"]').value;
-            const password = loginForm.querySelector('input[name="password"]').value;
-            const rememberMe = loginForm.querySelector('input[name="rememberMe"]');
-            const rememberMeChecked = rememberMe ? rememberMe.checked : false;
+            // 1. ПРОВЕРКА ВАЛИДНОСТИ (без браузерных подсказок благодаря novalidate)
+            if (!loginForm.checkValidity()) {
+                // Находим все невалидные поля и подсвечиваем их красным
+                const invalidInputs = loginForm.querySelectorAll(':invalid');
+                invalidInputs.forEach(input => {
+                    input.classList.add('regForm__input--error');
 
+                    // Показываем конкретную ошибку под полем
+                    const fieldErrorId = input.id + 'Error';
+                    const fieldErrorEl = document.getElementById(fieldErrorId);
+                    if (fieldErrorEl) {
+                        if (input.validity.valueMissing) {
+                            fieldErrorEl.textContent = 'Это поле обязательно для заполнения';
+                        } else if (input.validity.typeMismatch && input.type === 'email') {
+                            fieldErrorEl.textContent = 'Введите корректный email';
+                        }
+                    }
+                });
+
+                errorEl.textContent = 'Пожалуйста, проверьте выделенные поля';
+                errorEl.style.display = 'block';
+                return; // ОСТАНАВЛИВАЕМ отправку, если форма невалидна
+            }
+
+            // 2. Если форма валидна, очищаем все классы ошибок перед отправкой
+            loginForm.querySelectorAll('.regForm__input--error').forEach(input => {
+                input.classList.remove('regForm__input--error');
+            });
+            loginForm.querySelectorAll('.regForm__field-error').forEach(el => {
+                el.textContent = '';
+            });
+
+            // 3. Блокируем кнопку
             loginSubmitBtn.disabled = true;
-            loginSubmitBtn.textContent = 'Вход и расшифровка ключа...';
+            loginSubmitBtn.textContent = 'Вход...';
 
             try {
-                // 1. Сначала пытаемся войти стандартным способом
+                // 4. Собираем данные
+                const email = loginForm.querySelector('input[name="email"]').value;
+                const password = loginForm.querySelector('input[name="password"]').value;
+                const rememberMe = loginForm.querySelector('input[name="rememberMe"]');
+                const rememberMeChecked = rememberMe ? rememberMe.checked : false;
+
+                // 5. Отправка на сервер
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     credentials: 'include',
                     body: JSON.stringify({
                         email: email,
@@ -116,14 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // 2. Если вход успешен, сервер должен ВЕРНУТЬ нам salt и encryptedPrivateKey этого пользователя
-                    // (Убедитесь, что ваш бэкенд добавляет эти поля в успешный ответ при логине!)
+                    // Если вход успешен, расшифровываем приватный ключ
                     if (data.salt && data.encryptedPrivateKey) {
                         try {
                             const saltBuffer = new Uint8Array(data.salt);
                             const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
 
-                            // 3. Расшифровываем ключ и сохраняем ТОЛЬКО в переменную в памяти
                             window.sessionPrivateKey = await window.E2EECrypto.decryptPrivateKey(
                                 data.encryptedPrivateKey,
                                 masterKey
@@ -131,16 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.log('✅ Приватный ключ успешно расшифрован и находится в оперативной памяти.');
                         } catch (cryptoErr) {
                             console.error('Ошибка расшифровки ключа:', cryptoErr);
-                            // Не прерываем вход, но ключ не будет работать (можно показать предупреждение)
                         }
                     }
 
-                    // 4. Очищаем поле пароля в форме из соображений безопасности
+                    // Очищаем поле пароля
                     loginForm.querySelector('input[name="password"]').value = '';
 
                     window.location.href = '/';
                 } else {
-                    errorEl.textContent = 'Неверный email или пароль'; // Универсальная ошибка!
+                    errorEl.textContent = data.error || 'Неверный email или пароль';
                     errorEl.style.display = 'block';
                     loginSubmitBtn.disabled = false;
                     loginSubmitBtn.textContent = 'Войти';
@@ -153,47 +188,87 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginSubmitBtn.textContent = 'Войти';
             }
         });
+
+        // 6. УБИРАЕМ КРАСНУЮ РАМКУ И ОШИБКУ ПРИ НАЧАЛЕ ВВОДА
+        loginForm.querySelectorAll('.regForm__input').forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.classList.contains('regForm__input--error')) {
+                    input.classList.remove('regForm__input--error');
+
+                    // Скрываем ошибку конкретного поля
+                    const fieldErrorId = input.id + 'Error';
+                    const fieldErrorEl = document.getElementById(fieldErrorId);
+                    if (fieldErrorEl) {
+                        fieldErrorEl.textContent = '';
+                    }
+                }
+            });
+        });
     }
 
     // === 5. Обработка регистрации ===
+    // === ОБРАБОТКА РЕГИСТРАЦИИ ===
     // === ОБРАБОТКА РЕГИСТРАЦИИ ===
     const registerForm = document.getElementById('regForm-registerForm');
     const registerSubmitBtn = registerForm ? registerForm.querySelector('.regForm__button') : null;
 
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+            e.preventDefault(); // Всегда предотвращаем стандартную отправку
+
             const errorEl = document.getElementById('regForm-registerError');
             errorEl.textContent = '';
             errorEl.style.display = 'none';
 
+            // 1. ПРОВЕРКА ВАЛИДНОСТИ (без браузерных подсказок благодаря novalidate)
+            if (!registerForm.checkValidity()) {
+                // Находим все невалидные поля и подсвечиваем их красным
+                const invalidInputs = registerForm.querySelectorAll(':invalid');
+                invalidInputs.forEach(input => {
+                    input.classList.add('regForm__input--error');
 
-            // 1. Собираем данные из формы
-            const formData = new FormData(registerForm);
-            const data = Object.fromEntries(formData);
+                    // Опционально: показываем конкретную ошибку под полем
+                    const fieldErrorId = input.id + 'Error';
+                    const fieldErrorEl = document.getElementById(fieldErrorId);
+                    if (fieldErrorEl) {
+                        if (input.validity.valueMissing) {
+                            fieldErrorEl.textContent = 'Это поле обязательно для заполнения';
+                        } else if (input.validity.typeMismatch && input.type === 'email') {
+                            fieldErrorEl.textContent = 'Введите корректный email';
+                        } else if (input.validity.tooShort) {
+                            fieldErrorEl.textContent = `Минимум ${input.minLength} символов`;
+                        }
+                    }
+                });
 
-            // 2. Клиентская валидация (дублируем для мгновенного отклика)
-            if (data.password !== data.confirmPassword) {
-                errorEl.textContent = 'Пароли не совпадают';
+                errorEl.textContent = 'Пожалуйста, проверьте выделенные поля';
                 errorEl.style.display = 'block';
-                registerSubmitBtn.disabled = false;
-                registerSubmitBtn.textContent = 'Зарегистрироваться';
-                return;
+                return; // ОСТАНАВЛИВАЕМ отправку, если форма невалидна
             }
+
+            // 2. Если форма валидна, очищаем все классы ошибок перед отправкой
+            registerForm.querySelectorAll('.regForm__input--error').forEach(input => {
+                input.classList.remove('regForm__input--error');
+            });
+            registerForm.querySelectorAll('.regForm__field-error').forEach(el => {
+                el.textContent = '';
+            });
 
             // 3. Блокируем кнопку
             registerSubmitBtn.disabled = true;
             registerSubmitBtn.textContent = 'Генерация ключей и создание аккаунта...';
 
             try {
-                // 4. Криптография
+                // 4. Собираем данные и криптография (ваш существующий код)
+                const formData = new FormData(registerForm);
+                const data = Object.fromEntries(formData);
+
                 const salt = window.E2EECrypto.generateSalt();
                 const masterKey = await window.E2EECrypto.deriveMasterKey(data.password, salt);
                 const { publicKey, privateKey } = await window.E2EECrypto.generateKeyPair();
                 const encryptedPrivateKey = await window.E2EECrypto.encryptPrivateKey(privateKey, masterKey);
                 const publicKeyBase64 = await window.E2EECrypto.exportPublicKey(publicKey);
 
-                // 5. ФОРМИРУЕМ PAYLOAD (Вот здесь была пропущена строка!)
                 const payload = {
                     firstName: data.firstName,
                     lastName: data.lastName,
@@ -201,15 +276,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateOfBirth: data.dateOfBirth,
                     city: data.city || undefined,
                     password: data.password,
-                    // Строка confirmPassword: data.confirmPassword УДАЛЕНА отсюда
                     publicKey: publicKeyBase64,
                     encryptedPrivateKey: encryptedPrivateKey,
                     salt: Array.from(salt),
                 };
 
-                console.log("📦 Отправляем на сервер:", payload); // Для отладки
-
-                // 6. Отправка на сервер
+                // 5. Отправка на сервер
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -234,6 +306,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 registerSubmitBtn.disabled = false;
                 registerSubmitBtn.textContent = 'Зарегистрироваться';
             }
+        });
+
+        // 4. УБИРАЕМ КРАСНУЮ РАМКУ И ОШИБКУ ПРИ НАЧАЛЕ ВВОДА
+        registerForm.querySelectorAll('.regForm__input').forEach(input => {
+            input.addEventListener('input', () => {
+                if (input.classList.contains('regForm__input--error')) {
+                    input.classList.remove('regForm__input--error');
+
+                    // Скрываем ошибку конкретного поля
+                    const fieldErrorId = input.id + 'Error';
+                    const fieldErrorEl = document.getElementById(fieldErrorId);
+                    if (fieldErrorEl) {
+                        fieldErrorEl.textContent = '';
+                    }
+                }
+            });
         });
     }
 
