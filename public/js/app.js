@@ -154,6 +154,7 @@ async function updateMyPageLink() {
     console.error('Ошибка при обновлении ссылки "Моя страница":', error);
   }
 }
+
 // В app.js или отдельном файле для поиска
 document.addEventListener('DOMContentLoaded', () => {
   const searchToggleBtn = document.getElementById('searchToggleBtn');
@@ -161,11 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchIcon = document.getElementById('searchIcon');
   const searchClean = document.getElementById('headerSearchClear');
 
+  if (!searchToggleBtn || !searchInput) return; // Защита от отсутствия элементов
+
   searchToggleBtn.addEventListener('click', () => {
     searchInput.classList.toggle('active');
     searchToggleBtn.classList.toggle('moved');
     searchIcon.classList.toggle('moved');
-    searchClean.classList.toggle('active');
+    if (searchClean) searchClean.classList.toggle('active');
 
     if (searchInput.classList.contains('active')) {
       searchInput.focus();
@@ -180,7 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.classList.remove('active');
       searchToggleBtn.classList.remove('moved');
       searchIcon.classList.remove('moved');
-      searchCleaner.classList.remove('active');
+      // 🐛 ИСПРАВЛЕНО: было searchCleaner (опечатка), стало searchClean
+      if (searchClean) searchClean.classList.remove('active');
     }
   });
 
@@ -235,6 +239,7 @@ async function performSearch(query) {
   }
 }
 
+// ✅ ИСПРАВЛЕНО (XSS): Полностью переписано с использованием безопасного DOM API
 function renderSearchResults(usersList, container) {
   container.innerHTML = ''; // Очищаем предыдущие результаты
 
@@ -248,13 +253,19 @@ function renderSearchResults(usersList, container) {
     userElement.href = `/${user.id}`; // Ссылка на профиль
     userElement.className = 'search-result-item';
 
-    const name = `${user.firstName} ${user.lastName}`;
-    const cityHtml = user.city ? `<span class="search-result-city">📍 ${user.city}</span>` : '';
+    // 1. Создаем блок имени БЕЗОПАСНО через textContent
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'search-result-name';
+    nameDiv.textContent = `${user.firstName} ${user.lastName}`; // Браузер сам экранирует <script> и т.д.
+    userElement.appendChild(nameDiv);
 
-    userElement.innerHTML = `
-            <div class="search-result-name">${name}</div>
-            ${cityHtml}
-        `;
+    // 2. Создаем блок города БЕЗОПАСНО через textContent (если он есть)
+    if (user.city) {
+      const citySpan = document.createElement('span');
+      citySpan.className = 'search-result-city';
+      citySpan.textContent = `📍 ${user.city}`; // Браузер сам экранирует
+      userElement.appendChild(citySpan);
+    }
 
     // При клике на результат закрываем поле поиска
     userElement.addEventListener('click', () => {
@@ -281,6 +292,7 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
 document.addEventListener('DOMContentLoaded', () => {
   // Гарантированно вешаем обработчик на кнопку выхода
   const logoutBtn = document.getElementById('logoutBtn');
@@ -301,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
 // Запускаем инициализацию при загрузке DOM
 document.addEventListener('DOMContentLoaded', initApp);
 

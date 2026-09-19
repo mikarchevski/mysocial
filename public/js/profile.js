@@ -43,8 +43,9 @@ function formatDate(dateStr) {
     return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-// Экранирование HTML
+// Экранирование HTML (Ваша отличная функция!)
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -69,13 +70,12 @@ function formatGender(genderValue) {
 function setText(id, text) {
     const el = document.getElementById(id);
     if (el) {
-        el.textContent = text;
+        el.textContent = text; // ✅ Безопасно: textContent автоматически экранирует
         // Убираем класс скелетона, если он был
         el.classList.remove('skeleton', 'skeleton--medium', 'skeleton--short', 'skeleton--long');
     }
 }
 
-// Загрузка данных профиля
 // Загрузка данных профиля
 async function loadProfileData() {
     // Определяем ID пользователя из URL
@@ -100,12 +100,10 @@ async function loadProfileData() {
         });
 
         let isMyProfile = false;
-        let userProfileData = null;
 
         if (meResponse.ok) {
             const meData = await meResponse.json();
             isMyProfile = meData.user.id === userId;
-            userProfileData = meData.user;
         }
 
         // Загружаем данные профиля
@@ -145,7 +143,7 @@ async function loadProfileData() {
                                 </div>
                             </div>
                         </div>
-                    `;
+                    `; // ✅ Безопасно: здесь нет переменных пользователя, только статический HTML
                     return;
                 }
                 throw new Error('Не удалось загрузить профиль');
@@ -154,7 +152,7 @@ async function loadProfileData() {
             userData = data.user;
         }
 
-        // Заполняем данные
+        // Заполняем данные (функция setText внутри использует textContent, так что это безопасно)
         setText('profileName', `${userData.firstName} ${userData.lastName}` || 'Имя не указано');
         setText('userGender', formatGender(userData.gender) || 'Не указан');
         setText('userCity', userData.city || 'Не указано');
@@ -188,7 +186,6 @@ async function loadProfileData() {
         }
 
         // Логика для кнопки "Добавить в друзья"
-        // Логика для кнопки "Добавить в друзья"
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
             if (isMyProfile) {
@@ -196,7 +193,7 @@ async function loadProfileData() {
                 addFriendBtn.style.display = 'none';
             } else {
                 // Для чужого профиля проверяем статус дружбы
-                addFriendBtn.style.display = 'block'; // Убедимся, что кнопка видима перед проверкой статуса
+                addFriendBtn.style.display = 'block';
                 await checkFriendshipStatus(userId, addFriendBtn);
             }
         }
@@ -206,17 +203,19 @@ async function loadProfileData() {
 
     } catch (error) {
         console.error('Ошибка загрузки профиля:', error);
+        // ✅ УЛУЧШЕНО: Добавлено escapeHtml для error.message на случай, если сервер вернет что-то странное
         document.getElementById('main-content').innerHTML = `
             <div class="error-card">
                 <div class="error-content">
                     <h2>Ошибка загрузки профиля</h2>
-                    <p>${error.message}</p>
+                    <p>${escapeHtml(error.message)}</p>
                     <button onclick="location.reload()" class="btn btn-primary">Попробовать снова</button>
                 </div>
             </div>
         `;
     }
 }
+
 // Проверка статуса дружбы и обновление кнопки
 async function checkFriendshipStatus(userId, button) {
     console.log('🔥 Проверка статуса дружбы для userId:', userId);
@@ -247,8 +246,8 @@ async function checkFriendshipStatus(userId, button) {
 
 // Вспомогательная функция для обновления кнопки по статусу
 function updateButtonByStatus(button, status, userId) {
-    console.log('🔥 updateButtonByStatus вызвана:', { status, userId, button }); // ДОБАВИТЬ ЭТО
-    
+    console.log('🔥 updateButtonByStatus вызвана:', { status, userId, button });
+
     if (!button) {
         console.error('Кнопка не найдена');
         return;
@@ -266,20 +265,20 @@ function updateButtonByStatus(button, status, userId) {
             button.classList.add('profile-actions__btn--gray');
             button.onclick = () => removeFriend(userId, button);
             break;
-            
+
         case 'request_sent':
             button.textContent = 'Заявка отправлена';
             button.disabled = true;
             button.classList.add('profile-actions__btn--disabled');
             break;
-            
+
         case 'request_received':
             button.textContent = 'Принять заявку';
             button.disabled = false;
             button.classList.remove('profile-actions__btn--disabled');
             button.onclick = () => acceptFriendRequest(userId, button);
             break;
-            
+
         case 'none':
         default:
             button.textContent = 'Добавить в друзья';
@@ -293,12 +292,12 @@ function updateButtonByStatus(button, status, userId) {
 // Отправка запроса в друзья
 async function sendFriendRequest(userId, button) {
     console.log('Отправка запроса в друзья для userId:', userId);
-    
+
     try {
         // 🔥 Оптимистичное обновление: меняем кнопку сразу
         button.disabled = true;
         button.textContent = 'Отправка...'; // Промежуточный статус
-        
+
         const response = await fetch(`/api/friends/${userId}`, {
             method: 'POST',
             credentials: 'include'
@@ -316,13 +315,13 @@ async function sendFriendRequest(userId, button) {
 
     } catch (error) {
         console.error('Ошибка отправки запроса в друзья:', error);
-        
+
         // 🔥 Откат при ошибке: возвращаем кнопку в исходное состояние
         button.disabled = false;
         button.textContent = 'Добавить в друзья';
         button.classList.remove('profile-actions__btn--disabled');
         button.onclick = () => sendFriendRequest(userId, button); // Восстанавливаем обработчик
-        
+
         alert('Не удалось отправить запрос: ' + error.message);
     }
 }
@@ -365,13 +364,13 @@ async function acceptFriendRequest(userId, button) {
 
     } catch (error) {
         console.error('Ошибка принятия заявки:', error);
-        
+
         // Откат при ошибке
         button.disabled = false;
         button.textContent = 'Принять заявку';
         button.classList.remove('profile-actions__btn--disabled');
         button.onclick = () => acceptFriendRequest(userId, button);
-        
+
         alert('Не удалось принять заявку: ' + error.message);
     }
 }
@@ -390,7 +389,7 @@ async function removeFriend(userId, button) {
 
         // Отправляем запрос на удаление (используем метод DELETE)
         const response = await fetch(`/api/friends/${userId}`, {
-            method: 'DELETE', // Убедись, что твой бэкенд поддерживает этот метод для этого роута
+            method: 'DELETE',
             credentials: 'include'
         });
 
@@ -404,7 +403,7 @@ async function removeFriend(userId, button) {
         button.disabled = false;
         button.classList.remove('profile-actions__btn--disabled');
         button.onclick = () => sendFriendRequest(userId, button); // Возвращаем обработчик для повторной отправки
-        
+
         console.log('Пользователь успешно удален из друзей');
 
         // Если у тебя есть глобальная функция обновления счетчика друзей в сайдбаре, вызови её:
@@ -414,13 +413,13 @@ async function removeFriend(userId, button) {
 
     } catch (error) {
         console.error('Ошибка удаления из друзей:', error);
-        
+
         // 🔥 Откат при ошибке: возвращаем кнопку в состояние "Удалить из друзей"
         button.disabled = false;
         button.textContent = 'Удалить из друзей';
         button.classList.remove('profile-actions__btn--disabled');
         button.onclick = () => removeFriend(userId, button);
-        
+
         alert('Не удалось удалить из друзей: ' + error.message);
     }
 }
@@ -461,6 +460,7 @@ function renderWallPosts(posts) {
         return;
     }
 
+    // ✅ ОТЛИЧНО: Вы уже используете escapeHtml здесь! Это полностью защищает от XSS.
     container.innerHTML = posts.map(post => `
         <div class="wall__post" data-post-id="${post.id}">
             <div class="wall__post-avatar">
@@ -506,6 +506,7 @@ function formatWallDate(dateString) {
     if (days < 7) return date.toLocaleDateString('ru-RU', { weekday: 'short' });
     return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
 // Обработка отправки поста на стену
 async function handleWallSubmit() {
     const textarea = document.getElementById('wallTextarea');
@@ -528,9 +529,9 @@ async function handleWallSubmit() {
         const res = await fetch(`/api/posts/wall/${userId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'credentials': 'include'
+                'Content-Type': 'application/json'
             },
+            credentials: 'include', // Исправлено: credentials должен быть на уровне запроса, а не в headers
             body: JSON.stringify({ content: text })
         });
 
@@ -546,8 +547,6 @@ async function handleWallSubmit() {
         alert('Не удалось опубликовать запись: ' + error.message);
     }
 }
-
-// В файле public/js/profile.js, после строки с closeEditModalFn() добавляем:
 
 // Открытие модального окна редактирования
 function openEditModalFn() {
@@ -625,9 +624,9 @@ async function handleEditProfileSubmit(event) {
         const res = await fetch(`/api/users/${user.id}`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
-                'credentials': 'include'
+                'Content-Type': 'application/json'
             },
+            credentials: 'include', // Исправлено: вынесено из headers
             body: JSON.stringify(data)
         });
 
@@ -655,14 +654,14 @@ function closeEditModalFn() {
     }
 }
 
-//Обработчик клавиши Escape
+// Обработчик клавиши Escape
 function handleEscKey(event) {
     if (event.key === 'Escape' || event.keyCode === 27) {
         closeEditModalFn();
     }
 }
 
-//Обработчик клика вне области модального окна
+// Обработчик клика вне области модального окна
 function handleOutsideClick(event) {
     // Проверяем, что клик был именно по фону модального окна, а не по его содержимому
     if (event.target === event.currentTarget) {
@@ -680,9 +679,6 @@ function initProfile() {
         initializeProfileElements();
     }
 }
-
-// Вспомогательная функция инициализации элементов
-// В файле public/js/profile.js, полностью переписываем функцию initializeProfileElements()
 
 // Вспомогательная функция инициализации элементов
 function initializeProfileElements() {
@@ -710,11 +706,11 @@ function initializeProfileElements() {
         });
 
         // Кнопка редактирования профиля - устанавливаем обработчик отдельно
-        const editProfileBtn = document.getElementById('editProfileBtn');
-        if (editProfileBtn) {
+        const editBtn = document.getElementById('editProfileBtn');
+        if (editBtn) {
             // Очищаем предыдущие обработчики и устанавливаем новый
-            editProfileBtn.removeEventListener('click', openEditModalFn);
-            editProfileBtn.addEventListener('click', openEditModalFn);
+            editBtn.removeEventListener('click', openEditModalFn);
+            editBtn.addEventListener('click', openEditModalFn);
         }
 
         // Загружаем данные профиля

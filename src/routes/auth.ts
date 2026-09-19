@@ -4,6 +4,20 @@ import { z } from "zod";
 import AuthService from "../services/auth.service.js";
 import { env } from "../config/env.js";
 
+// Функция для проверки на потенциально опасные паттерны
+const containsDangerousPatterns = (str: string): boolean => {
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i, // onclick=, onerror= и т.д.
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+  ];
+
+  return dangerousPatterns.some((pattern) => pattern.test(str));
+};
+
 const registerSchema = z
   .object({
     firstName: z.string().min(2, "Имя должно содержать минимум 2 символа"),

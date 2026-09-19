@@ -18,6 +18,7 @@ import { postsRoutes } from "./routes/posts.js";
 import AuthService from "./services/auth.service.js";
 import { friendsRoutes } from "./routes/friends.js";
 import fastifyRateLimit from "@fastify/rate-limit";
+import { securityPlugin } from "./plugins/security.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,36 @@ await app.register(jwt, {
 });
 await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
 await app.register(websocket);
+
+// === CSP ЗАГОЛОВКИ ===
+app.addHook("onRequest", async (request, reply) => {
+  // Строгая CSP политика
+  reply.header(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'", // Запрет загрузки ресурсов с внешних доменов
+      "script-src 'self'", // Запрет инлайн-скриптов и внешних скриптов
+      "style-src 'self' 'unsafe-inline'", // Разрешаем инлайн-стили (нужно для SCSS)
+      "img-src 'self' data: blob:", // Разрешаем изображения из тех же источников и base64
+      "font-src 'self'", // Шрифты только с вашего домена
+      "connect-src 'self' ws: wss:", // WebSocket соединения
+      "frame-ancestors 'none'", // Запрет встраивания сайта в iframe (защита от clickjacking)
+      "base-uri 'self'", // Запрет изменения base URL
+      "form-action 'self'", // Формы могут отправляться только на ваш домен
+    ].join("; "),
+  );
+
+  // Дополнительные заголовки безопасности
+  reply.header("X-Content-Type-Options", "nosniff"); // Запрет MIME-type sniffing
+  reply.header("X-Frame-Options", "DENY"); // Запрет iframe (дублирует frame-ancestors)
+  reply.header("Referrer-Policy", "strict-origin-when-cross-origin"); // Контроль referrer
+  reply.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  ); // Запрет доступа к API
+});
+// === КОНЕЦ CSP ===
+await app.register(securityPlugin);
 // 1.5. Rate Limiting (ГЛОБАЛЬНЫЕ НАСТРОЙКИ)
 await app.register(fastifyRateLimit, {
   max: 100, // Максимум 100 запросов в минуту с одного IP по умолчанию

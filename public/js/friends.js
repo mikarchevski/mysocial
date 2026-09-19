@@ -1,7 +1,5 @@
 // public/js/friends.js
 
-// public/js/friends.js
-
 let currentFriendsTab = 'friends';
 
 async function initFriends() {
@@ -71,12 +69,30 @@ async function initFriends() {
         });
     }
 
+    // ✅ ДОБАВЛЕНО: Безопасное делегирование событий (вместо опасных onclick в HTML)
+    const friendsContainer = document.getElementById('friendsList');
+    if (friendsContainer) {
+        friendsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return; // Если клик не по кнопке с data-action, игнорируем
+
+            const action = btn.dataset.action;
+            const id = btn.dataset.id;
+
+            if (action === 'profile') {
+                window.location.href = `/${id}`;
+            } else if (action === 'message') {
+                sendDirectMessage(id);
+            } else if (action === 'accept') {
+                acceptFriendRequest(id);
+            } else if (action === 'decline') {
+                rejectFriendRequest(id);
+            }
+        });
+    }
+
     console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ СТРАНИЦЫ ДРУЗЕЙ ===');
 }
-
-// ... остальные функции остаются без изменений ...
-
-// ... остальные функции остаются без изменений ...
 
 // Инициализация вкладок
 function initTabs() {
@@ -167,17 +183,18 @@ function renderFriendsList(friends) {
         return;
     }
 
+    // ✅ ИЗМЕНЕНО: Убраны onclick, добавлены data-action и data-id. Добавлен escapeHtml для alt и src.
     container.innerHTML = friends.map(friend => `
         <div class="friend-item" data-user-id="${friend.id}">
             <div class="friend-item__avatar">
-                <img src="${friend.avatar || '/images/default-avatar.svg'}" alt="${friend.firstName} ${friend.lastName}">
+                <img src="${escapeHtml(friend.avatar || '/images/default-avatar.svg')}" alt="${escapeHtml(friend.firstName)} ${escapeHtml(friend.lastName)}">
             </div>
             <div class="friend-item__info">
                 <a href="/${friend.id}" class="friend-item__name spa-link">${escapeHtml(friend.firstName)} ${escapeHtml(friend.lastName)}</a>
             </div>
             <div class="friend-item__actions">
-                <button class="friend-item__action-btn" onclick="location.href='/${friend.id}'">Профиль</button>
-                <button class="friend-item__action-btn" onclick="sendDirectMessage(${friend.id})">Написать</button>
+                <button class="friend-item__action-btn" data-action="profile" data-id="${friend.id}">Профиль</button>
+                <button class="friend-item__action-btn" data-action="message" data-id="${friend.id}">Написать</button>
             </div>
         </div>
     `).join('');
@@ -194,17 +211,18 @@ function renderFriendRequests(requests) {
         return;
     }
 
+    // ✅ ИЗМЕНЕНО: Убраны onclick, добавлены data-action и data-id. Добавлен escapeHtml для src.
     container.innerHTML = requests.map(request => `
         <div class="request-item" data-request-id="${request.id}">
             <div class="request-item__avatar">
-                <img src="${request.avatar || '/images/default-avatar.svg'}" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
+                <img src="${escapeHtml(request.avatar || '/images/default-avatar.svg')}" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
             </div>
             <div class="request-item__info">
                 <a href="/${request.id}" class="request-item__name spa-link">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</a>
             </div>
             <div class="request-item__actions">
-                <button class="accept-btn" onclick="acceptFriendRequest(${request.id})">Принять</button>
-                <button class="decline-btn" onclick="rejectFriendRequest(${request.id})">Отклонить</button>
+                <button class="accept-btn" data-action="accept" data-id="${request.id}">Принять</button>
+                <button class="decline-btn" data-action="decline" data-id="${request.id}">Отклонить</button>
             </div>
         </div>
     `).join('');
@@ -212,6 +230,7 @@ function renderFriendRequests(requests) {
 
 // Экранирование HTML
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
