@@ -1,4 +1,5 @@
 // Content
+@use '../variables' as *;
 .content {
   flex: 1;
   min-width: 0;
@@ -225,12 +226,13 @@
   max-width: 480px;
   max-height: 65vh;
   overflow-y: auto;
+  justify-content: start;
 
   &__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px;
+    padding: 15px 24px;
     width: 100%;
     border-bottom: 1px solid #e7e8ec;
   }
@@ -263,7 +265,23 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    &-input    {
+        resize: none;
+    padding: 10px 12px;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+    }
+    }
   }
+
+  
 
   &__actions {
     display: flex;
@@ -653,4 +671,154 @@
 .profile-actions__btn--gray:active {
     background-color: #d1d5db !important;
     transform: scale(0.98); /* Легкое нажатие */
+}
+
+.profile-editor {
+  // Оверлей (затемненный фон)
+  &__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    &.active {
+      display: flex !important;
+    }
+  }
+
+  // Само окно модалки
+  &__modal {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  // Шапка
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  &__close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s;
+
+    &:hover {
+      color: #111827;
+      background-color: #f3f4f6;
+    }
+  }
+
+  // Форма
+  &__form {
+    padding: 24px;
+  }
+
+  &__group {
+    margin-bottom: 16px;
+
+    &:last-of-type {
+      margin-bottom: 24px;
+    }
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: #111827;
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    // Модификатор для textarea
+    &--textarea {
+      resize: none;
+      min-height: 80px;
+    }
+  }
+
+  // Подвал с кнопками
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  &__button {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+
+    // Модификатор кнопки отмены
+    &--cancel {
+      background-color: #ffffff;
+      color: #374151;
+      border-color: #d1d5db;
+
+      &:hover {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+
+    // Модификатор кнопки сохранения
+    &--save {
+      background-color: $primary-color;
+      color: #ffffff;
+
+      &:hover {
+        background-color: $secondary-color;
+      }
+    }
+  }
 }

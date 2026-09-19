@@ -1,26 +1,39 @@
 <!-- public/fragments/edit-modal.html -->
-<div class="modal-overlay" id="editModal" style="display: none;">
-  <div class="modal">
-    <div class="modal__header">
-      <h3 class="modal__title">Редактирование профиля</h3>
-      <button class="modal__close" id="closeEditModal">&times;</button>
+<div class="profile-editor__overlay" id="profileEditorModal" style="display: none;">
+  <div class="profile-editor__modal">
+    
+    <div class="profile-editor__header">
+      <h3 class="profile-editor__title">Редактирование профиля</h3>
+      <button type="button" class="profile-editor__close" id="profileEditorCloseBtn" aria-label="Закрыть">&times;</button>
     </div>
-    <form id="editProfileForm" class="modal__form">
-      <div class="form-group">
-        <label class="form-label" for="editCity">Город</label>
-        <input type="text" id="editCity" class="form-input" placeholder="Введите город">
+
+    <form id="profileEditorForm" class="profile-editor__form">
+      
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editCity">Город</label>
+        <input type="text" id="editCity" class="profile-editor__input" placeholder="Введите город">
       </div>
-      <div class="form-group">
-        <label class="form-label" for="editPhone">Телефон</label>
-        <input type="tel" id="editPhone" class="form-input" placeholder="+7 (999) 123-45-67">
+
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editPhone">Телефон</label>
+        <input type="tel" id="editPhone" class="profile-editor__input" placeholder="+7 (999) 123-45-67">
       </div>
-      <div class="form-group">
-        <label class="form-label" for="editWebsite">Сайт</label>
-        <input type="url" id="editWebsite" class="form-input" placeholder="https://example.com">
+
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editWebsite">Сайт</label>
+        <input type="url" id="editWebsite" class="profile-editor__input" placeholder="https://example.com">
       </div>
-      <div class="form-group">
-        <label class="form-label" for="editFamily">Семейное положение</label>
-        <select id="editFamily" class="form-input">
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editGender">Пол</label>
+        <select id="editGender" class="profile-editor__input">
+          <option value="">Не указано</option>
+          <option value="Мужской">Мужской</option>
+          <option value="Женский">Женский</option>
+        </select>
+      </div>
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editFamily">Семейное положение</label>
+        <select id="editFamily" class="profile-editor__input">
           <option value="">Не указано</option>
           <option value="Не женат / Не замужем">Не женат / Не замужем</option>
           <option value="Встречаюсь">Встречаюсь</option>
@@ -30,14 +43,16 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="editAbout">О себе</label>
-        <textarea id="editAbout" class="form-input" rows="3" placeholder="Расскажите о себе"></textarea>
+      <div class="profile-editor__group">
+        <label class="profile-editor__label" for="editAbout">О себе</label>
+        <textarea id="editAbout" class="profile-editor__input profile-editor__input--textarea" rows="3" placeholder="Расскажите о себе"></textarea>
       </div>
-      <div class="modal__actions">
-        <button type="button" class="modal__btn modal__btn--cancel" id="cancelEdit">Отмена</button>
-        <button type="submit" class="modal__btn modal__btn--save">Сохранить</button>
+
+      <div class="profile-editor__actions">
+        <button type="button" class="profile-editor__button profile-editor__button--cancel" id="profileEditorCancelBtn">Отмена</button>
+        <button type="submit" class="profile-editor__button profile-editor__button--save">Сохранить</button>
       </div>
+
     </form>
   </div>
 </div>

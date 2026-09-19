@@ -103,7 +103,7 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: "Можно редактировать только свой профиль" });
       }
 
-      const { city, phone, website, familyStatus, about } = request.body as any;
+      const { city, phone, website, familyStatus, about, gender } = request.body as any;
 
       try {
         const user = await authService.updateUser(targetId, {
@@ -112,6 +112,7 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
           website: website ?? undefined,
           familyStatus: familyStatus ?? undefined,
           about: about ?? undefined,
+          gender: gender ?? undefined,
         });
         return { user };
       } catch (error: any) {
