@@ -136,6 +136,33 @@ export default class FriendsService {
     return requestsWithUserInfo;
   }
 
+    // 🔥 НОВЫЙ МЕТОД: Удалить пользователя из друзей
+  async removeFriend(userId1: number, userId2: number) {
+    if (userId1 === userId2) {
+      throw new Error('Нельзя удалить себя из друзей');
+    }
+
+    // Проверяем, являются ли они вообще друзьями, чтобы не делать лишних запросов
+    const areFriends = await this.areFriends(userId1, userId2);
+    if (!areFriends) {
+      throw new Error('Пользователи не являются друзьями');
+    }
+
+    // Удаляем запись о дружбе (статус 'accepted' в любом направлении)
+    await db
+      .delete(friendRequests)
+      .where(
+        and(
+          or(
+            and(eq(friendRequests.fromUserId, userId1), eq(friendRequests.toUserId, userId2)),
+            and(eq(friendRequests.fromUserId, userId2), eq(friendRequests.toUserId, userId1))
+          ),
+          eq(friendRequests.status, 'accepted')
+        )
+      );
+
+    return { message: 'Пользователь успешно удален из друзей' };
+  }
   // Получить список друзей
   async getFriends(userId: number) {
     // Получаем список принятых заявок, где пользователь является инициатором или получателем
