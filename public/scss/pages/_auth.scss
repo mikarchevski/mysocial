@@ -1,6 +1,6 @@
 // public/scss/pages/_auth.scss
-@use '../../scss/variables' as *;
-@use 'sass:color';
+@use "../../scss/variables" as *;
+@use "sass:color";
 
 // Страница и контейнер
 .regForm-page {
@@ -46,7 +46,7 @@
     font-weight: $font-weight-bold;
 
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       bottom: -2px;
       left: 0;
@@ -113,100 +113,133 @@
 }
 
 // Форма и её элементы
-.regForm__form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
-.regForm__row {
-  display: flex;
-  flex-direction: column; // На мобильных устройствах колонка
-  gap: 12px;
-
-  // Если нужно на десктопе в строку, можно добавить медиа-запрос:
-  // @media (min-width: 480px) {
-  //   flex-direction: row;
-  // }
-
-  .regForm__group {
+.regForm {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  &__row {
+    display: flex;
+    flex-direction: column; // На мобильных устройствах колонка
+    gap: 12px;
+  }
+  &__group {
+    display: flex;
     flex: 1;
+    flex-direction: column;
+    gap: 6px;
+
+    &--checkbox {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
   }
-}
-
-.regForm__group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  &--checkbox {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-}
-
-.regForm__label {
-  font-size: 14px;
-  font-weight: $font-weight-bold;
-  color: $text-color;
-
-  &--inline {
+  &__label {
     font-size: 14px;
-    color: $text-secondary;
+    font-weight: $font-weight-bold;
+    color: $text-color;
+
+    &--inline {
+      font-size: 14px;
+      color: $text-secondary;
+      cursor: pointer;
+    }
+  }
+  &__input {
+    flex: 1;
+    padding-right: 44px;
+    padding: 10px 12px;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    font-size: 15px;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
+    &-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+    }
+  }
+  &__checkbox {
+    width: 18px;
+    height: 18px;
     cursor: pointer;
+    accent-color: $primary-color;
   }
-}
+  &__button {
+    background: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
 
-.regForm__input {
-  padding: 10px 12px;
-  border: 1px solid $border-color;
-  border-radius: $border-radius;
-  font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+    &:hover {
+      background: color.adjust(
+        $primary-color,
+        $lightness: -8%
+      ); // Современный аналог darken()
+    }
 
-  &:focus {
-    outline: none;
-    border-color: $primary-color;
-    box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+    &:active {
+      transform: translateY(1px);
+    }
   }
-}
-
-.regForm__checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: $primary-color;
-}
-
-.regForm__button {
-  background: $primary-color;
-  color: white;
-  border: none;
-  border-radius: $border-radius;
-  padding: 12px;
-  font-size: 16px;
-  font-weight: $font-weight-bold;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 8px;
-
-  &:hover {
-    background: color.adjust($primary-color, $lightness: -8%); // Современный аналог darken()
+  &__error {
+    color: $danger-color;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+    background: color.adjust(
+      $danger-color,
+      $lightness: 50%
+    ); // Современный аналог lighten()
+    padding: 8px;
+    border-radius: $border-radius-sm;
+    margin-top: 8px;
   }
+  &__toggle {
+    &-password {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $text-secondary;
+      transition: color 0.2s;
 
-  &:active {
-    transform: translateY(1px);
+      &:hover {
+        color: $primary-color;
+      }
+
+      &:focus {
+        outline: none;
+        color: $primary-color;
+      }
+
+      &-icon {
+        width: 20px;
+        height: 20px;
+        pointer-events: none; // Чтобы клик по SVG не мешал
+      }
+    }
   }
-}
-
-.regForm__error {
-  color: $danger-color;
-  font-size: 14px;
-  text-align: center;
-  display: none;
-  background: color.adjust($danger-color, $lightness: 50%); // Современный аналог lighten()
-  padding: 8px;
-  border-radius: $border-radius-sm;
-  margin-top: 8px;
 }

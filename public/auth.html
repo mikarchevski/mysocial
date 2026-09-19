@@ -28,8 +28,18 @@
                     </div>
                     <div class="regForm__group">
                         <label for="regForm-loginPassword" class="regForm__label">Пароль</label>
-                        <input type="password" id="regForm-loginPassword" name="password" class="regForm__input"
-                            required autocomplete="current-password">
+                        <div class="regForm__input-wrapper">
+                            <input type="password" id="regForm-loginPassword" name="password" class="regForm__input"
+                                required autocomplete="current-password">
+                            <button type="button" class="regForm__toggle-password" aria-label="Показать пароль">
+                                <svg class="regForm__toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="regForm__group regForm__group--checkbox">
                         <input type="checkbox" id="regForm-rememberMe" name="rememberMe" class="regForm__checkbox">
@@ -72,13 +82,33 @@
                     <div class="regForm__row">
                         <div class="regForm__group">
                             <label for="regForm-registerPassword" class="regForm__label">Пароль *</label>
-                            <input type="password" id="regForm-registerPassword" name="password" class="regForm__input"
-                                required minlength="6" autocomplete="new-password">
+                            <div class="regForm__input-wrapper">
+                                <input type="password" id="regForm-registerPassword" name="password"
+                                    class="regForm__input" required minlength="8" autocomplete="new-password">
+                                <button type="button" class="regForm__toggle-password" aria-label="Показать пароль">
+                                    <svg class="regForm__toggle-icon" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <div class="regForm__group">
                             <label for="regForm-confirmPassword" class="regForm__label">Повторите пароль *</label>
-                            <input type="password" id="regForm-confirmPassword" name="confirmPassword"
-                                class="regForm__input" required minlength="6" autocomplete="new-password">
+                            <div class="regForm__input-wrapper">
+                                <input type="password" id="regForm-confirmPassword" name="confirmPassword"
+                                    class="regForm__input" required minlength="8" autocomplete="new-password">
+                                <button type="button" class="regForm__toggle-password" aria-label="Показать пароль">
+                                    <svg class="regForm__toggle-icon" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div id="regForm-registerError" class="regForm__error"></div>

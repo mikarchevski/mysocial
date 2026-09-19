@@ -2128,18 +2128,14 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 16px;
 }
-
 .regForm__row {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.regForm__row .regForm__group {
-  flex: 1;
-}
-
 .regForm__group {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 6px;
 }
@@ -2148,7 +2144,6 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 8px;
 }
-
 .regForm__label {
   font-size: 14px;
   font-weight: 600;
@@ -2159,27 +2154,31 @@ h1, h2, h3, h4, h5, h6 {
   color: #6b7280;
   cursor: pointer;
 }
-
 .regForm__input {
+  flex: 1;
+  padding-right: 44px;
   padding: 10px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   font-size: 15px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
+.regForm__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 .regForm__input:focus {
   outline: none;
   border-color: #5181b8;
   box-shadow: 0 0 0 3px rgba(81, 129, 184, 0.15);
 }
-
 .regForm__checkbox {
   width: 18px;
   height: 18px;
   cursor: pointer;
   accent-color: #5181b8;
 }
-
 .regForm__button {
   background: #5181b8;
   color: white;
@@ -2198,7 +2197,6 @@ h1, h2, h3, h4, h5, h6 {
 .regForm__button:active {
   transform: translateY(1px);
 }
-
 .regForm__error {
   color: #dc3545;
   font-size: 14px;
@@ -2208,6 +2206,31 @@ h1, h2, h3, h4, h5, h6 {
   padding: 8px;
   border-radius: 4px;
   margin-top: 8px;
+}
+.regForm__toggle-password {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+.regForm__toggle-password:hover {
+  color: #5181b8;
+}
+.regForm__toggle-password:focus {
+  outline: none;
+  color: #5181b8;
+}
+.regForm__toggle-password-icon {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 }
 
 .page-404-container,
