@@ -218,12 +218,6 @@ async function loadProfileData() {
     }
 }
 // Проверка статуса дружбы и обновление кнопки
-// ==========================================
-// Управление состоянием кнопки друзей
-// ==========================================
-
-// Проверка статуса дружбы и обновление кнопки
-// Проверка статуса дружбы и обновление кнопки
 async function checkFriendshipStatus(userId, button) {
     console.log('🔥 Проверка статуса дружбы для userId:', userId);
 
@@ -251,7 +245,6 @@ async function checkFriendshipStatus(userId, button) {
     }
 }
 
-// Вспомогательная функция для обновления кнопки по статусу (БЕЗ cloneNode!)
 // Вспомогательная функция для обновления кнопки по статусу
 function updateButtonByStatus(button, status, userId) {
     console.log('🔥 updateButtonByStatus вызвана:', { status, userId, button }); // ДОБАВИТЬ ЭТО
@@ -459,7 +452,6 @@ async function loadWallPosts(filter = 'all') {
 }
 
 // Отображение записей на стене
-// Отображение записей на стене
 function renderWallPosts(posts) {
     const container = document.getElementById('wallPosts');
     if (!container) return;
@@ -515,7 +507,6 @@ function formatWallDate(dateString) {
     return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 // Обработка отправки поста на стену
-// Обработка отправки поста на стену
 async function handleWallSubmit() {
     const textarea = document.getElementById('wallTextarea');
     if (!textarea) return;
@@ -560,12 +551,14 @@ async function handleWallSubmit() {
 
 // Открытие модального окна редактирования
 function openEditModalFn() {
-    const modal = document.getElementById('editModal');
+    const modal = document.getElementById('profileEditorModal');
     if (modal) {
         // Загружаем текущие данные пользователя для заполнения формы
         loadUserDataForEditModal();
         modal.style.display = 'flex';
     }
+    document.addEventListener('keydown', handleEscKey);
+    modal.addEventListener('click', handleOutsideClick);
 }
 
 async function loadUserDataForEditModal() {
@@ -577,6 +570,7 @@ async function loadUserDataForEditModal() {
         const { user } = await response.json();
 
         // Заполняем поля данными пользователя
+        document.getElementById('editGender').value = user.gender || '';
         document.getElementById('editCity').value = user.city || '';
         document.getElementById('editPhone').value = user.phone || '';
         document.getElementById('editWebsite').value = user.website || '';
@@ -586,10 +580,6 @@ async function loadUserDataForEditModal() {
         console.error('Ошибка загрузки данных для модального окна:', error);
     }
 }
-
-// Также добавим в initializeProfileElements():
-
-// В функции initializeProfileElements() добавляем обработчики:
 
 const editProfileBtn = document.getElementById('editProfileBtn');
 if (editProfileBtn) editProfileBtn.onclick = openEditModalFn;
@@ -603,11 +593,6 @@ function switchWallFilter(filter) {
     if (activeBtn) activeBtn.classList.add('wall__filter-btn--active');
     loadWallPosts(filter);
 }
-
-// Обработка сохранения формы редактирования профиля
-// В функции handleEditProfileSubmit() обновляем начало:
-
-// В файле public/js/profile.js, обновляем функцию handleEditProfileSubmit
 
 // Обработка сохранения формы редактирования профиля
 async function handleEditProfileSubmit(event) {
@@ -625,6 +610,7 @@ async function handleEditProfileSubmit(event) {
             city: document.getElementById('editCity').value || undefined,
             phone: document.getElementById('editPhone').value || undefined,
             website: document.getElementById('editWebsite').value || undefined,
+            gender: document.getElementById('editGender').value || undefined,
             familyStatus: document.getElementById('editFamily').value || undefined,
             about: document.getElementById('editAbout').value || undefined
         };
@@ -660,8 +646,28 @@ async function handleEditProfileSubmit(event) {
 
 // Закрытие модального окна
 function closeEditModalFn() {
-    const modal = document.getElementById('editModal');
-    if (modal) modal.style.display = 'none';
+    const modal = document.getElementById('profileEditorModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+        document.removeEventListener('keydown', handleEscKey);
+        modal.removeEventListener('click', handleOutsideClick);
+    }
+}
+
+//Обработчик клавиши Escape
+function handleEscKey(event) {
+    if (event.key === 'Escape' || event.keyCode === 27) {
+        closeEditModalFn();
+    }
+}
+
+//Обработчик клика вне области модального окна
+function handleOutsideClick(event) {
+    // Проверяем, что клик был именно по фону модального окна, а не по его содержимому
+    if (event.target === event.currentTarget) {
+        closeEditModalFn();
+    }
 }
 
 // Инициализация профиля
@@ -686,16 +692,16 @@ function initializeProfileElements() {
         const wallSubmitBtn = document.getElementById('wallSubmitBtn');
         if (wallSubmitBtn) wallSubmitBtn.onclick = handleWallSubmit;
 
-        // Обработчики для формы редактирования
-        const editProfileForm = document.getElementById('editProfileForm');
+        // Обработчики для формы редактирования (новые ID)
+        const editProfileForm = document.getElementById('profileEditorForm');
         if (editProfileForm) editProfileForm.onsubmit = handleEditProfileSubmit;
 
-        // Обработчики для модального окна
-        const closeEditModal = document.getElementById('closeEditModal');
-        if (closeEditModal) closeEditModal.onclick = closeEditModalFn;
+        // Обработчики для кнопок закрытия модального окна (новые ID)
+        const closeEditModalBtn = document.getElementById('profileEditorCloseBtn');
+        if (closeEditModalBtn) closeEditModalBtn.onclick = closeEditModalFn;
 
-        const cancelEdit = document.getElementById('cancelEdit');
-        if (cancelEdit) cancelEdit.onclick = closeEditModalFn;
+        const cancelEditBtn = document.getElementById('profileEditorCancelBtn');
+        if (cancelEditBtn) cancelEditBtn.onclick = closeEditModalFn;
 
         // Обработчики для фильтров стены
         const filterBtns = document.querySelectorAll('.wall__filter-btn');

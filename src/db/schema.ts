@@ -42,8 +42,6 @@ export const messages = pgTable("messages", {
   isRead: boolean("is_read").default(false).notNull(),
 });
 
-// ... existing code ...
-
 export const friendRequests = pgTable("friend_requests", {
   id: serial("id").primaryKey(),
   fromUserId: integer("from_user_id")

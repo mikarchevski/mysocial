@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// === ФУНКЦИИ ПОИСКА (добавить в конец app.js) ===
+// === ФУНКЦИИ ПОИСКА ===
 
 async function performSearch(query) {
     const trimmedQuery = query.trim();
