@@ -425,6 +425,7 @@ async function sendChatMessage(recipientId) {
         return;
     }
 
+    // Блокируем textarea на время отправки
     textarea.disabled = true;
 
     try {
@@ -438,6 +439,23 @@ async function sendChatMessage(recipientId) {
 
         const { encryptedContent, encryptedKey } = await encryptMessage(plaintext, publicKey);
         
+        // 🔥 1. СРАЗУ ДОБАВЛЯЕМ СООБЩЕНИЕ В UI (оптимистичное обновление)
+        const messagesContainer = document.getElementById('messagesContainer');
+        const tempMessageId = `temp_${Date.now()}`;
+        const tempMessageHtml = `
+            <div class="message message--sent" data-message-id="${tempMessageId}" data-temp="true">
+                <div class="message__text">${escapeHtml(plaintext)}</div>
+                <div class="message__time">${formatTime(new Date().toISOString())}</div>
+            </div>
+        `;
+        messagesContainer.insertAdjacentHTML('beforeend', tempMessageHtml);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Очищаем поле ввода
+        textarea.value = '';
+        textarea.style.height = 'auto';
+
+        // 🔥 2. ОТПРАВЛЯЕМ НА СЕРВЕР
         const sendRes = await fetch('/api/messages/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -449,17 +467,19 @@ async function sendChatMessage(recipientId) {
             const responseData = await sendRes.json().catch(() => ({}));
             const newMessageId = responseData.message?.id; 
             
-            // 🔥 ГЛАВНОЕ: Сохраняем plaintext для себя, чтобы переживал перезагрузку
+            // 🔥 3. СОХРАНЯЕМ plaintext И ЗАМЕНЯЕМ TEMP ID НА РЕАЛЬНЫЙ
             if (newMessageId) {
                 localStorage.setItem(`sent_msg_${newMessageId}`, plaintext);
                 sentMessagesCache.set(String(newMessageId), plaintext);
+                
+                // Заменяем временный ID на реальный
+                const tempMessage = document.querySelector(`[data-message-id="${tempMessageId}"]`);
+                if (tempMessage) {
+                    tempMessage.setAttribute('data-message-id', newMessageId);
+                    tempMessage.removeAttribute('data-temp');
+                }
             }
             
-            textarea.value = '';
-            textarea.style.height = 'auto';
-            
-            // Полная перерисовка диалога для синхронизации состояния
-            await openDialog(recipientId);
         } else {
             const error = await sendRes.json().catch(() => ({}));
             throw new Error(error.error || 'Неизвестная ошибка сервера');
@@ -467,6 +487,10 @@ async function sendChatMessage(recipientId) {
     } catch (error) {
         console.error('Ошибка при отправке сообщения:', error);
         alert('Ошибка отправки: ' + error.message);
+        
+        // 🔥 4. ПРИ ОШИБКЕ УДАЛЯЕМ ВРЕМЕННОЕ СООБЩЕНИЕ
+        const tempMessage = document.querySelector(`[data-temp="true"]`);
+        if (tempMessage) tempMessage.remove();
     } finally {
         textarea.disabled = false;
         textarea.focus();
@@ -484,23 +508,23 @@ async function renderMessages(messagesFromServer, userId) {
 
     return Promise.all(messagesFromServer.map(async (msg) => {
         try {
-            // 🔥 ПРОВЕРКА: Это наше собственное сообщение?
+            // 🔥 Пропускаем временные сообщения (они уже отображены)
+            if (msg.isTemp) {
+                return { ...msg, text: msg.text };
+            }
+
             if (Number(msg.senderId) === userId) {
-                // 1. Ищем в localStorage (переживает перезагрузку)
                 const persistedText = localStorage.getItem(`sent_msg_${msg.id}`);
                 if (persistedText) return { ...msg, text: persistedText };
                 
-                // 2. Ищем в оперативной памяти (мгновенный доступ)
                 const cachedText = sentMessagesCache.get(String(msg.id));
                 if (cachedText) return { ...msg, text: cachedText };
                 
-                // 3. Фоллбэк, если кэш был очищен пользователем
                 return { ...msg, text: '[Текст недоступен: кэш браузера очищен]' };
             }
 
-            // Для входящих сообщений - честная расшифровка приватным ключом
             if (!msg.encryptedContent || !msg.encryptedKey) {
-                return { ...msg, text: '⚠️ Нет зашифрованных данных' };
+                return { ...msg, text: '️ Нет зашифрованных данных' };
             }
             
             const plaintext = await decryptMessage(msg.encryptedContent, msg.encryptedKey, myPrivateKey);
