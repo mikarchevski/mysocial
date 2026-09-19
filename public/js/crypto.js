@@ -1,134 +1,105 @@
 // public/js/crypto.js
 
-// 1. Генерация пары ключей (RSA-OAEP)
-async function generateKeyPair() {
-  const keyPair = await window.crypto.subtle.generateKey(
-    {
-      name: "RSA-OAEP",
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: "SHA-256",
-    },
-    true, // извлекаемый
-    ["encrypt", "decrypt"]
-  );
-
-  const pubJwk = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
-  const privJwk = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
-
-  return {
-    publicKey: JSON.stringify(pubJwk),
-    privateKey: JSON.stringify(privJwk),
-  };
-}
-
-// 2. Шифрование сообщения (для отправителя)
-async function encryptMessage(plaintext, recipientPublicKeyJwkString) {
-  const pubJwk = JSON.parse(recipientPublicKeyJwkString);
-  const publicKey = await window.crypto.subtle.importKey(
-    "jwk", pubJwk, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]
-  );
-
-  // Генерируем одноразовый AES ключ для этого сообщения
-  const aesKey = await window.crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-  );
-
-  const encoder = new TextEncoder();
-  const iv = window.crypto.getRandomValues(new Uint8Array(12)); // 12 байт для GCM
-  
-  // Шифруем текст AES-ключом
-  const ciphertext = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv }, aesKey, encoder.encode(plaintext)
-  );
-
-  // Шифруем сам AES-ключ публичным ключом получателя
-  const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-  const encryptedAesKey = await window.crypto.subtle.encrypt(
-    { name: "RSA-OAEP" }, publicKey, rawAesKey
-  );
-
-  // Конвертируем в base64 для удобной передачи по сети
-  const toBase64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  
-  return {
-    // Храним IV и данные вместе в JSON
-    encryptedContent: JSON.stringify({ 
-      iv: toBase64(iv), 
-      data: toBase64(ciphertext) 
-    }),
-    encryptedKey: toBase64(encryptedAesKey),
-  };
-}
-
-// 3. Расшифровка сообщения (для получателя)
-// 3. Расшифровка сообщения (для получателя)
-// 3. Расшифровка сообщения (для получателя)
-async function decryptMessage(encryptedContentJsonString, encryptedKeyBase64, privateKeyJwkString) {
-  const privJwk = JSON.parse(privateKeyJwkString);
-  const privateKey = await window.crypto.subtle.importKey(
-    "jwk", privJwk, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["decrypt"]
-  );
-
-  // Функция для безопасного декодирования Base64
-  const fromBase64 = (base64) => {
-    // Удаляем пробелы, новые строки и другие пробельные символы
-    const cleanBase64 = base64.replace(/\s/g, '');
-    // Проверяем, содержит ли строка только допустимые символы Base64
-    if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
-      throw new Error('Недопустимые символы в строке Base64');
+// Вспомогательные функции для конвертации ArrayBuffer <-> Base64 (для передачи в JSON)
+const arrayBufferToBase64 = (buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
     }
-    // Убедимся, что строка имеет правильную длину для Base64 (кратна 4)
-    const paddedBase64 = cleanBase64.padEnd((Math.ceil(cleanBase64.length / 4) * 4), '=');
-    const binaryString = atob(paddedBase64);
+    return window.btoa(binary);
+};
+
+const base64ToArrayBuffer = (base64) => {
+    const binaryString = window.atob(base64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+        bytes[i] = binaryString.charCodeAt(i);
     }
-    return bytes;
-  };
+    return bytes.buffer;
+};
 
-  try {
-    // 1. Расшифровываем AES-ключ своим приватным ключом
-    const encryptedKeyBytes = fromBase64(encryptedKeyBase64);
-    const rawAesKey = await window.crypto.subtle.decrypt(
-      { name: "RSA-OAEP" }, privateKey, encryptedKeyBytes
-    );
+window.E2EECrypto = {
+    // 1. Генерация случайной соли (16 байт)
+    generateSalt: () => {
+        return window.crypto.getRandomValues(new Uint8Array(16));
+    },
 
-    // 2. Импортируем AES-ключ
-    const aesKey = await window.crypto.subtle.importKey(
-      "raw", rawAesKey, { name: "AES-GCM" }, true, ["decrypt"]
-    );
+    // 2. Получение мастер-ключа из пароля и соли (PBKDF2, 100 000 итераций)
+    deriveMasterKey: async (password, saltBuffer) => {
+        const enc = new TextEncoder();
+        const passwordKey = await window.crypto.subtle.importKey(
+            "raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]
+        );
+        
+        return await window.crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: saltBuffer, iterations: 100000, hash: "SHA-256" },
+            passwordKey,
+            { name: "AES-GCM", length: 256 },
+            false, // Ключ нельзя экспортировать (дополнительная защита)
+            ["encrypt", "decrypt"]
+        );
+    },
 
-    // 3. Расшифровываем само сообщение
-    // Парсим JSON и проверяем его структуру
-    let content;
-    try {
-      content = JSON.parse(encryptedContentJsonString);
-    } catch (parseErr) {
-      console.error('Ошибка парсинга JSON зашифрованного содержимого:', parseErr);
-      throw new Error('Некорректный формат зашифрованного содержимого');
+    // 3. Генерация пары ключей для E2EE шифрования сообщений (RSA-OAEP)
+    generateKeyPair: async () => {
+        return await window.crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: "SHA-256",
+            },
+            true, // Можно экспортировать публичный ключ
+            ["encrypt", "decrypt"]
+        );
+    },
+
+    // 4. Шифрование приватного ключа мастер-ключом
+    encryptPrivateKey: async (privateKey, masterKey) => {
+        // Экспортируем приватный ключ в формат PKCS#8 (ArrayBuffer)
+        const exportedKey = await window.crypto.subtle.exportKey("pkcs8", privateKey);
+        const iv = window.crypto.getRandomValues(new Uint8Array(12)); // Вектор инициализации для AES-GCM
+        
+        const encryptedBuffer = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            masterKey,
+            exportedKey
+        );
+
+        // Объединяем IV и зашифрованные данные для хранения
+        const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+        combined.set(iv);
+        combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+        return arrayBufferToBase64(combined.buffer);
+    },
+
+    // 5. Расшифровка приватного ключа мастер-ключом
+    decryptPrivateKey: async (encryptedBase64, masterKey) => {
+        const combined = new Uint8Array(base64ToArrayBuffer(encryptedBase64));
+        const iv = combined.slice(0, 12);
+        const data = combined.slice(12);
+
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            masterKey,
+            data
+        );
+
+        // Импортируем обратно как CryptoKey
+        return await window.crypto.subtle.importKey(
+            "pkcs8",
+            decryptedBuffer,
+            { name: "RSA-OAEP", hash: "SHA-256" },
+            false,
+            ["decrypt"]
+        );
+    },
+
+    // 6. Экспорт публичного ключа в Base64 (для отправки на сервер)
+    exportPublicKey: async (publicKey) => {
+        const exported = await window.crypto.subtle.exportKey("spki", publicKey);
+        return arrayBufferToBase64(exported);
     }
-
-    if (!content.iv || !content.data) {
-      throw new Error('Отсутствуют необходимые поля в зашифрованном содержимом');
-    }
-
-    const iv = fromBase64(content.iv);
-    const ciphertext = fromBase64(content.data);
-
-    const decrypted = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv }, aesKey, ciphertext
-    );
-
-    return new TextDecoder().decode(decrypted);
-  } catch (error) {
-    console.error('Ошибка при расшифровке:', error);
-    throw error;
-  }
-}
-
-// Делаем функции доступными глобально
-window.generateKeyPair = generateKeyPair;
-window.encryptMessage = encryptMessage;
-window.decryptMessage = decryptMessage;
+};

@@ -8,6 +8,7 @@ import {
   timestamp,
   boolean,
   date,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -23,7 +24,8 @@ export const users = pgTable("users", {
   familyStatus: varchar("family_status", { length: 50 }), // семейное положение
   about: text("about"),
   publicKey: text("public_key"),
-  // Добавляем поле для пола пользователя
+  encryptedPrivateKey: text("encrypted_private_key"),
+  salt: jsonb("salt"),
   gender: varchar("gender", { length: 10 }), // например, 'male', 'female', 'other'
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

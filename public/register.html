@@ -7,68 +7,76 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <div class="auth-page">
-        <div class="auth-container">
-            <div class="auth-card">
-                <h1 class="auth-card__title">Создать аккаунт</h1>
+    <!-- Внешние обертки также с префиксом regForm -->
+    <div class="regForm-page">
+        <div class="regForm-container">
+            
+            <!-- Основной блок БЭМ -->
+            <div class="regForm">
+                <h1 class="regForm__title">Создать аккаунт</h1>
                 
-                <form class="auth-form" id="registerForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName" class="form-label">Имя</label>
-                            <input type="text" id="firstName" name="firstName" class="form-input" required>
+                <form class="regForm__form" id="regForm">
+                    <div class="regForm__row">
+                        <div class="regForm__group">
+                            <label for="regForm-firstName" class="regForm__label">Имя</label>
+                            <input type="text" id="regForm-firstName" name="firstName" class="regForm__input" required>
                         </div>
-                        <div class="form-group">
-                            <label for="lastName" class="form-label">Фамилия</label>
-                            <input type="text" id="lastName" name="lastName" class="form-input" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" id="email" name="email" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="dateOfBirth" class="form-label">Дата рождения</label>
-                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="city" class="form-label">Город</label>
-                        <input type="text" id="city" name="city" class="form-input">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="password" class="form-label">Пароль</label>
-                            <input type="password" id="password" name="password" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword" class="form-label">Подтвердите пароль</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required>
+                        <div class="regForm__group">
+                            <label for="regForm-lastName" class="regForm__label">Фамилия</label>
+                            <input type="text" id="regForm-lastName" name="lastName" class="regForm__input" required>
                         </div>
                     </div>
                     
-                    <button type="submit" class="form-button">Зарегистрироваться</button>
+                    <div class="regForm__group">
+                        <label for="regForm-email" class="regForm__label">Email</label>
+                        <input type="email" id="regForm-email" name="email" class="regForm__input" required>
+                    </div>
                     
-                    <div class="form-error" id="errorMessage"></div>
+                    <div class="regForm__group">
+                        <label for="regForm-dateOfBirth" class="regForm__label">Дата рождения</label>
+                        <input type="date" id="regForm-dateOfBirth" name="dateOfBirth" class="regForm__input" required>
+                    </div>
+                    
+                    <div class="regForm__group">
+                        <label for="regForm-city" class="regForm__label">Город</label>
+                        <input type="text" id="regForm-city" name="city" class="regForm__input">
+                    </div>
+                    
+                    <div class="regForm__row">
+                        <div class="regForm__group">
+                            <label for="regForm-password" class="regForm__label">Пароль</label>
+                            <input type="password" id="regForm-password" name="password" class="regForm__input" required>
+                        </div>
+                        <div class="regForm__group">
+                            <label for="regForm-confirmPassword" class="regForm__label">Подтвердите пароль</label>
+                            <input type="password" id="regForm-confirmPassword" name="confirmPassword" class="regForm__input" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="regForm__button">Зарегистрироваться</button>
+                    
+                    <div class="regForm__error" id="regForm-errorMessage"></div>
                 </form>
                 
-                <div class="auth-card__footer">
-                    <p>Уже есть аккаунт? <a href="/login" class="auth-link">Войти</a></p>
+                <div class="regForm__footer">
+                    <p>Уже есть аккаунт? <a href="/login" class="regForm__link">Войти</a></p>
                 </div>
             </div>
+            
         </div>
     </div>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        // Обновлены ID в скрипте
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData);
             
+            // Кэшируем элемент ошибки, чтобы не искать его в DOM дважды
+            const errorElement = document.getElementById('regForm-errorMessage');
+
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
@@ -84,12 +92,12 @@
                 if (response.ok) {
                     window.location.href = '/';
                 } else {
-                    document.getElementById('errorMessage').textContent = result.error;
-                    document.getElementById('errorMessage').style.display = 'block';
+                    errorElement.textContent = result.error;
+                    errorElement.style.display = 'block';
                 }
             } catch (error) {
-                document.getElementById('errorMessage').textContent = 'Произошла ошибка при регистрации';
-                document.getElementById('errorMessage').style.display = 'block';
+                errorElement.textContent = 'Произошла ошибка при регистрации';
+                errorElement.style.display = 'block';
             }
         });
     </script>

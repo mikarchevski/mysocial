@@ -1,9 +1,9 @@
 // public/scss/pages/_auth.scss
 @use '../../scss/variables' as *;
 @use 'sass:color';
-// public/scss/pages/_auth.scss
 
-.auth-page {
+// Страница и контейнер
+.regForm-page {
   background: $bg-color;
   display: flex;
   align-items: center;
@@ -12,14 +12,20 @@
   padding: 20px;
 }
 
-.auth-tabs {
+.regForm-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+// Табы (если используются на странице)
+.regForm-tabs {
   display: flex;
   gap: 0;
   margin-bottom: 24px;
   border-bottom: 2px solid $border-color;
 }
 
-.auth-tab {
+.regForm-tab {
   flex: 1;
   padding: 12px;
   background: none;
@@ -51,17 +57,17 @@
   }
 }
 
-// Обертки для форм
-.auth-form-wrapper {
+// Обертки для форм (если используется переключение вход/регистрация)
+.regForm-form-wrapper {
   display: none;
 
   &--active {
     display: block;
-    animation: fadeIn 0.3s ease-in;
+    animation: regForm-fadeIn 0.3s ease-in;
   }
 }
 
-@keyframes fadeIn {
+@keyframes regForm-fadeIn {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -72,12 +78,8 @@
   }
 }
 
-.auth-container {
-  width: 100%;
-  max-width: 420px;
-}
-
-.auth-card {
+// Основной блок БЭМ
+.regForm {
   background: $card-bg;
   border-radius: $border-radius-lg;
   box-shadow: $box-shadow;
@@ -99,7 +101,8 @@
   }
 }
 
-.auth-link {
+// Ссылка в футере
+.regForm__link {
   color: $link-color;
   text-decoration: none;
   font-weight: 500;
@@ -109,23 +112,29 @@
   }
 }
 
-.auth-form {
+// Форма и её элементы
+.regForm__form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.form-row {
+.regForm__row {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; // На мобильных устройствах колонка
   gap: 12px;
 
-  .form-group {
+  // Если нужно на десктопе в строку, можно добавить медиа-запрос:
+  // @media (min-width: 480px) {
+  //   flex-direction: row;
+  // }
+
+  .regForm__group {
     flex: 1;
   }
 }
 
-.form-group {
+.regForm__group {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -137,7 +146,7 @@
   }
 }
 
-.form-label {
+.regForm__label {
   font-size: 14px;
   font-weight: $font-weight-bold;
   color: $text-color;
@@ -149,7 +158,7 @@
   }
 }
 
-.form-input {
+.regForm__input {
   padding: 10px 12px;
   border: 1px solid $border-color;
   border-radius: $border-radius;
@@ -163,14 +172,14 @@
   }
 }
 
-.form-checkbox {
+.regForm__checkbox {
   width: 18px;
   height: 18px;
   cursor: pointer;
   accent-color: $primary-color;
 }
 
-.form-button {
+.regForm__button {
   background: $primary-color;
   color: white;
   border: none;
@@ -183,7 +192,7 @@
   margin-top: 8px;
 
   &:hover {
-    background: darken($primary-color, 8%);
+    background: color.adjust($primary-color, $lightness: -8%); // Современный аналог darken()
   }
 
   &:active {
@@ -191,12 +200,12 @@
   }
 }
 
-.form-error {
+.regForm__error {
   color: $danger-color;
   font-size: 14px;
   text-align: center;
   display: none;
-  background: lighten($danger-color, 50%);
+  background: color.adjust($danger-color, $lightness: 50%); // Современный аналог lighten()
   padding: 8px;
   border-radius: $border-radius-sm;
   margin-top: 8px;
