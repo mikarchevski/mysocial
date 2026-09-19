@@ -12,6 +12,8 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
   confirmPassword: z.string(),
   publicKey: z.string().optional(),
+  encryptedPrivateKey: z.string().optional(),
+  salt: z.array(z.number()).optional(), 
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Пароли не совпадают',
   path: ['confirmPassword'],
@@ -57,28 +59,36 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   // Вход
   app.post('/login', async (request, reply) => {
-    const body = loginSchema.parse(request.body);
-    
-    try {
-      const user = await authService.login(body.email, body.password);
-      
-      const expiresIn = body.rememberMe ? '30d' : '1d';
-      const token = app.jwt.sign({ userId: user.id }, { expiresIn });
-      
-      // Исправленная установка куки
-      reply.setCookie('token', token, {
-        path: '/',
-        httpOnly: true,
-        secure: false, // временно отключено для разработки
-        sameSite: 'lax', // изменено на lax для разработки
-        maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
-      });
-      
-      return { user, success: true };
-    } catch (error: any) {
-      return reply.status(401).send({ error: error.message });
-    }
-  });
+  const body = loginSchema.parse(request.body);
+  try {
+    const userData = await authService.login(body.email, body.password);
+    const expiresIn = body.rememberMe ? '30d' : '1d';
+    const token = app.jwt.sign({ userId: userData.id }, { expiresIn });
+
+    reply.setCookie('token', token, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Рекомендуется включить для продакшена
+      sameSite: 'lax',
+      maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
+    });
+
+    // === ИЗМЕНИТЕ ВОЗВРАЩАЕМЫЙ ОБЪЕКТ ===
+    return { 
+      user: {
+        id: userData.id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+      },
+      salt: userData.salt,                 // <-- ОТДАЕМ СОЛЬ
+      encryptedPrivateKey: userData.encryptedPrivateKey, // <-- ОТДАЕМ ЗАШИФРОВАННЫЙ КЛЮЧ
+      success: true 
+    };
+  } catch (error: any) {
+    return reply.status(401).send({ error: error.message });
+  }
+});
 
   // Получение текущего пользователя
   app.get('/me', {

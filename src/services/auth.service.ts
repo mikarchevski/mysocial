@@ -1,5 +1,7 @@
 // src/services/auth.service.ts
 import UsersRepository from "../repositories/users.repository.js";
+// import { hashPassword, verifyPassword } from "../utils/password.js"; // или ваш путь
+// import UsersRepository from "../repositories/users.repository.js";
 import { hashPassword, verifyPassword } from "../utils/crypto.js";
 import type { NewUser } from "../db/schema.js";
 
@@ -14,6 +16,8 @@ export default class AuthService {
     dateOfBirth: string;
     city?: string;
     publicKey?: string;
+    encryptedPrivateKey?: string; // <-- ДОБАВИТЬ
+    salt?: number[];              // <-- ДОБАВИТЬ
   }) {
     const existingUser = await this.usersRepo.findByEmail(data.email);
     if (existingUser) {
@@ -30,6 +34,8 @@ export default class AuthService {
       dateOfBirth: data.dateOfBirth,
       city: data.city || null,
       publicKey: data.publicKey || null,
+      encryptedPrivateKey: data.encryptedPrivateKey || null, // <-- ДОБАВИТЬ
+      salt: data.salt || null,                               // <-- ДОБАВИТЬ
     });
 
     return {
@@ -56,8 +62,11 @@ export default class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      salt: user.salt,                 // <-- ДОБАВИТЬ
+      encryptedPrivateKey: user.encryptedPrivateKey, // <-- ДОБАВИТЬ
     };
   }
+
 
   async getUserById(id: number) {
     const user = await this.usersRepo.findById(id);

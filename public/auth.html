@@ -6,82 +6,80 @@
     <title>Авторизация | MySocial</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="auth-page">
-    <div class="auth-container">
-        <div class="auth-card">
+<body class="regForm-page">
+    <div class="regForm-container">
+        <div class="regForm">
             <!-- Табы для переключения -->
-            <div class="auth-tabs">
-                <button class="auth-tab auth-tab--active" data-tab="login">Вход</button>
-                <button class="auth-tab" data-tab="register">Регистрация</button>
+            <div class="regForm-tabs">
+                <button class="regForm-tab regForm-tab--active" data-tab="login">Вход</button>
+                <button class="regForm-tab" data-tab="register">Регистрация</button>
             </div>
 
             <!-- Форма входа -->
-            <div class="auth-form-wrapper auth-form-wrapper--active" id="loginFormWrapper">
-                <h1 class="auth-card__title">Вход в MySocial</h1>
-                <form id="loginForm" class="auth-form">
-                    <div class="form-group">
-                        <label for="loginEmail" class="form-label">Email</label>
-                        <input type="email" id="loginEmail" name="email" class="form-input" required>
+            <div class="regForm-form-wrapper regForm-form-wrapper--active" id="regForm-loginFormWrapper">
+                <h1 class="regForm__title">Вход в MySocial</h1>
+                <form id="regForm-loginForm" class="regForm__form">
+                    <div class="regForm__group">
+                        <label for="regForm-loginEmail" class="regForm__label">Email</label>
+                        <input type="email" id="regForm-loginEmail" name="email" class="regForm__input" required>
                     </div>
-                    <div class="form-group">
-                        <label for="loginPassword" class="form-label">Пароль</label>
-                        <input type="password" id="loginPassword" name="password" class="form-input" required>
+                    <div class="regForm__group">
+                        <label for="regForm-loginPassword" class="regForm__label">Пароль</label>
+                        <input type="password" id="regForm-loginPassword" name="password" class="regForm__input" required>
                     </div>
-                    <div class="form-group form-group--checkbox">
-                        <input type="checkbox" id="rememberMe" name="rememberMe" class="form-checkbox">
-                        <label for="rememberMe" class="form-label--inline">Запомнить меня</label>
+                    <div class="regForm__group regForm__group--checkbox">
+                        <input type="checkbox" id="regForm-rememberMe" name="rememberMe" class="regForm__checkbox">
+                        <label for="regForm-rememberMe" class="regForm__label regForm__label--inline">Запомнить меня</label>
                     </div>
-                    <div id="loginError" class="form-error"></div>
-                    <button type="submit" class="form-button">Войти</button>
+                    <div id="regForm-loginError" class="regForm__error"></div>
+                    <button type="submit" class="regForm__button">Войти</button>
                 </form>
             </div>
 
             <!-- Форма регистрации -->
-            <div class="auth-form-wrapper" id="registerFormWrapper">
-                <h1 class="auth-card__title">Регистрация в MySocial</h1>
-                <form id="registerForm" class="auth-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName" class="form-label">Имя *</label>
-                            <input type="text" id="firstName" name="firstName" class="form-input" required>
+            <div class="regForm-form-wrapper" id="regForm-registerFormWrapper">
+                <h1 class="regForm__title">Регистрация в MySocial</h1>
+                <form id="regForm-registerForm" class="regForm__form">
+                    <div class="regForm__row">
+                        <div class="regForm__group">
+                            <label for="regForm-firstName" class="regForm__label">Имя *</label>
+                            <input type="text" id="regForm-firstName" name="firstName" class="regForm__input" required>
                         </div>
-                        <div class="form-group">
-                            <label for="lastName" class="form-label">Фамилия *</label>
-                            <input type="text" id="lastName" name="lastName" class="form-input" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="dateOfBirth" class="form-label">Дата рождения *</label>
-                        <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="city" class="form-label">Город</label>
-                        <input type="text" id="city" name="city" class="form-input" placeholder="Необязательно">
-                    </div>
-                    <div class="form-group">
-                        <label for="registerEmail" class="form-label">Email *</label>
-                        <input type="email" id="registerEmail" name="email" class="form-input" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="registerPassword" class="form-label">Пароль *</label>
-                            <input type="password" id="registerPassword" name="password" class="form-input" required minlength="6">
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword" class="form-label">Повторите пароль *</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required minlength="6">
+                        <div class="regForm__group">
+                            <label for="regForm-lastName" class="regForm__label">Фамилия *</label>
+                            <input type="text" id="regForm-lastName" name="lastName" class="regForm__input" required>
                         </div>
                     </div>
-                    <div id="registerError" class="form-error"></div>
-                    <button type="submit" class="form-button">Зарегистрироваться</button>
+                    <div class="regForm__group">
+                        <label for="regForm-dateOfBirth" class="regForm__label">Дата рождения *</label>
+                        <input type="date" id="regForm-dateOfBirth" name="dateOfBirth" class="regForm__input" required>
+                    </div>
+                    <div class="regForm__group">
+                        <label for="regForm-city" class="regForm__label">Город</label>
+                        <input type="text" id="regForm-city" name="city" class="regForm__input" placeholder="Необязательно">
+                    </div>
+                    <div class="regForm__group">
+                        <label for="regForm-registerEmail" class="regForm__label">Email *</label>
+                        <input type="email" id="regForm-registerEmail" name="email" class="regForm__input" required>
+                    </div>
+                    <div class="regForm__row">
+                        <div class="regForm__group">
+                            <label for="regForm-registerPassword" class="regForm__label">Пароль *</label>
+                            <input type="password" id="regForm-registerPassword" name="password" class="regForm__input" required minlength="6">
+                        </div>
+                        <div class="regForm__group">
+                            <label for="regForm-confirmPassword" class="regForm__label">Повторите пароль *</label>
+                            <input type="password" id="regForm-confirmPassword" name="confirmPassword" class="regForm__input" required minlength="6">
+                        </div>
+                    </div>
+                    <div id="regForm-registerError" class="regForm__error"></div>
+                    <button type="submit" class="regForm__button">Зарегистрироваться</button>
                 </form>
             </div>
         </div>
     </div>
-    <!-- <script src="/js/auth.js"></script> -->
-    <!-- <script type="module" src="/js/auth.js"></script> -->
-     <script src="/js/crypto.js"></script>
-<script src="/js/auth.js"></script>
 
+    <script src="/js/crypto.js"></script>
+    <script src="/js/auth.js"></script>
 </body>
 </html>
