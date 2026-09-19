@@ -49,164 +49,164 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 4. Обработка входа ===
     // Глобальная переменная (в памяти) для хранения расшифрованного ключа текущей сессии.
-// Она обнулится при перезагрузке страницы, что и является нашей целью безопасности!
-window.sessionPrivateKey = null;
+    // Она обнулится при перезагрузке страницы, что и является нашей целью безопасности!
+    window.sessionPrivateKey = null;
 
-// === ОБРАБОТКА ВХОДА ===
-const loginForm = document.getElementById('regForm-loginForm');
-const loginSubmitBtn = loginForm ? loginForm.querySelector('.regForm__button') : null;
+    // === ОБРАБОТКА ВХОДА ===
+    const loginForm = document.getElementById('regForm-loginForm');
+    const loginSubmitBtn = loginForm ? loginForm.querySelector('.regForm__button') : null;
 
-if (loginForm) {
-    loginForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const errorEl = document.getElementById('regForm-loginError');
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('regForm-loginError');
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
 
-        const email = loginForm.querySelector('input[name="email"]').value;
-        const password = loginForm.querySelector('input[name="password"]').value;
-        const rememberMe = loginForm.querySelector('input[name="rememberMe"]');
-        const rememberMeChecked = rememberMe ? rememberMe.checked : false;
+            const email = loginForm.querySelector('input[name="email"]').value;
+            const password = loginForm.querySelector('input[name="password"]').value;
+            const rememberMe = loginForm.querySelector('input[name="rememberMe"]');
+            const rememberMeChecked = rememberMe ? rememberMe.checked : false;
 
-        loginSubmitBtn.disabled = true;
-        loginSubmitBtn.textContent = 'Вход и расшифровка ключа...';
+            loginSubmitBtn.disabled = true;
+            loginSubmitBtn.textContent = 'Вход и расшифровка ключа...';
 
-        try {
-            // 1. Сначала пытаемся войти стандартным способом
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ 
-                    email: email, 
-                    password: password, 
-                    rememberMe: rememberMeChecked 
-                }),
-            });
+            try {
+                // 1. Сначала пытаемся войти стандартным способом
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        rememberMe: rememberMeChecked
+                    }),
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (response.ok) {
-                // 2. Если вход успешен, сервер должен ВЕРНУТЬ нам salt и encryptedPrivateKey этого пользователя
-                // (Убедитесь, что ваш бэкенд добавляет эти поля в успешный ответ при логине!)
-                if (data.salt && data.encryptedPrivateKey) {
-                    try {
-                        const saltBuffer = new Uint8Array(data.salt);
-                        const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
-                        
-                        // 3. Расшифровываем ключ и сохраняем ТОЛЬКО в переменную в памяти
-                        window.sessionPrivateKey = await window.E2EECrypto.decryptPrivateKey(
-                            data.encryptedPrivateKey, 
-                            masterKey
-                        );
-                        console.log('✅ Приватный ключ успешно расшифрован и находится в оперативной памяти.');
-                    } catch (cryptoErr) {
-                        console.error('Ошибка расшифровки ключа:', cryptoErr);
-                        // Не прерываем вход, но ключ не будет работать (можно показать предупреждение)
+                if (response.ok) {
+                    // 2. Если вход успешен, сервер должен ВЕРНУТЬ нам salt и encryptedPrivateKey этого пользователя
+                    // (Убедитесь, что ваш бэкенд добавляет эти поля в успешный ответ при логине!)
+                    if (data.salt && data.encryptedPrivateKey) {
+                        try {
+                            const saltBuffer = new Uint8Array(data.salt);
+                            const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
+
+                            // 3. Расшифровываем ключ и сохраняем ТОЛЬКО в переменную в памяти
+                            window.sessionPrivateKey = await window.E2EECrypto.decryptPrivateKey(
+                                data.encryptedPrivateKey,
+                                masterKey
+                            );
+                            console.log('✅ Приватный ключ успешно расшифрован и находится в оперативной памяти.');
+                        } catch (cryptoErr) {
+                            console.error('Ошибка расшифровки ключа:', cryptoErr);
+                            // Не прерываем вход, но ключ не будет работать (можно показать предупреждение)
+                        }
                     }
-                }
 
-                // 4. Очищаем поле пароля в форме из соображений безопасности
-                loginForm.querySelector('input[name="password"]').value = '';
-                
-                window.location.href = '/';
-            } else {
-                errorEl.textContent = 'Неверный email или пароль'; // Универсальная ошибка!
+                    // 4. Очищаем поле пароля в форме из соображений безопасности
+                    loginForm.querySelector('input[name="password"]').value = '';
+
+                    window.location.href = '/';
+                } else {
+                    errorEl.textContent = 'Неверный email или пароль'; // Универсальная ошибка!
+                    errorEl.style.display = 'block';
+                    loginSubmitBtn.disabled = false;
+                    loginSubmitBtn.textContent = 'Войти';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorEl.textContent = 'Ошибка соединения с сервером';
                 errorEl.style.display = 'block';
                 loginSubmitBtn.disabled = false;
                 loginSubmitBtn.textContent = 'Войти';
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            errorEl.textContent = 'Ошибка соединения с сервером';
-            errorEl.style.display = 'block';
-            loginSubmitBtn.disabled = false;
-            loginSubmitBtn.textContent = 'Войти';
-        }
-    });
-}
+        });
+    }
 
     // === 5. Обработка регистрации ===
     // === ОБРАБОТКА РЕГИСТРАЦИИ ===
-const registerForm = document.getElementById('regForm-registerForm');
-const registerSubmitBtn = registerForm ? registerForm.querySelector('.regForm__button') : null;
+    const registerForm = document.getElementById('regForm-registerForm');
+    const registerSubmitBtn = registerForm ? registerForm.querySelector('.regForm__button') : null;
 
-if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const errorEl = document.getElementById('regForm-registerError');
-        errorEl.textContent = '';
-        errorEl.style.display = 'none';
-        
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('regForm-registerError');
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
 
-        // 1. Собираем данные из формы
-const formData = new FormData(registerForm);
-const data = Object.fromEntries(formData);
 
-// 2. Клиентская валидация (дублируем для мгновенного отклика)
-if (data.password !== data.confirmPassword) {
-    errorEl.textContent = 'Пароли не совпадают';
-    errorEl.style.display = 'block';
-    registerSubmitBtn.disabled = false;
-    registerSubmitBtn.textContent = 'Зарегистрироваться';
-    return;
-}
+            // 1. Собираем данные из формы
+            const formData = new FormData(registerForm);
+            const data = Object.fromEntries(formData);
 
-// 3. Блокируем кнопку
-registerSubmitBtn.disabled = true;
-registerSubmitBtn.textContent = 'Генерация ключей и создание аккаунта...';
+            // 2. Клиентская валидация (дублируем для мгновенного отклика)
+            if (data.password !== data.confirmPassword) {
+                errorEl.textContent = 'Пароли не совпадают';
+                errorEl.style.display = 'block';
+                registerSubmitBtn.disabled = false;
+                registerSubmitBtn.textContent = 'Зарегистрироваться';
+                return;
+            }
 
-try {
-    // 4. Криптография
-    const salt = window.E2EECrypto.generateSalt();
-    const masterKey = await window.E2EECrypto.deriveMasterKey(data.password, salt);
-    const { publicKey, privateKey } = await window.E2EECrypto.generateKeyPair();
-    const encryptedPrivateKey = await window.E2EECrypto.encryptPrivateKey(privateKey, masterKey);
-    const publicKeyBase64 = await window.E2EECrypto.exportPublicKey(publicKey);
+            // 3. Блокируем кнопку
+            registerSubmitBtn.disabled = true;
+            registerSubmitBtn.textContent = 'Генерация ключей и создание аккаунта...';
 
-    // 5. ФОРМИРУЕМ PAYLOAD (Вот здесь была пропущена строка!)
-    const payload = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        dateOfBirth: data.dateOfBirth,
-        city: data.city || undefined,
-        password: data.password,
-        confirmPassword: data.confirmPassword, // <--- ДОБАВЬТЕ ЭТУ СТРОКУ
-        publicKey: publicKeyBase64,
-        encryptedPrivateKey: encryptedPrivateKey,
-        salt: Array.from(salt),
-    };
+            try {
+                // 4. Криптография
+                const salt = window.E2EECrypto.generateSalt();
+                const masterKey = await window.E2EECrypto.deriveMasterKey(data.password, salt);
+                const { publicKey, privateKey } = await window.E2EECrypto.generateKeyPair();
+                const encryptedPrivateKey = await window.E2EECrypto.encryptPrivateKey(privateKey, masterKey);
+                const publicKeyBase64 = await window.E2EECrypto.exportPublicKey(publicKey);
 
-    console.log("📦 Отправляем на сервер:", payload); // Для отладки
+                // 5. ФОРМИРУЕМ PAYLOAD (Вот здесь была пропущена строка!)
+                const payload = {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    email: data.email,
+                    dateOfBirth: data.dateOfBirth,
+                    city: data.city || undefined,
+                    password: data.password,
+                    // Строка confirmPassword: data.confirmPassword УДАЛЕНА отсюда
+                    publicKey: publicKeyBase64,
+                    encryptedPrivateKey: encryptedPrivateKey,
+                    salt: Array.from(salt),
+                };
 
-    // 6. Отправка на сервер
-    const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-    });
+                console.log("📦 Отправляем на сервер:", payload); // Для отладки
 
-    const result = await response.json();
+                // 6. Отправка на сервер
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload),
+                });
 
-    if (response.ok) {
-        window.location.href = '/';
-    } else {
-        errorEl.textContent = result.error || 'Ошибка регистрации';
-        errorEl.style.display = 'block';
-        registerSubmitBtn.disabled = false;
-        registerSubmitBtn.textContent = 'Зарегистрироваться';
+                const result = await response.json();
+
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    errorEl.textContent = result.error || 'Ошибка регистрации';
+                    errorEl.style.display = 'block';
+                    registerSubmitBtn.disabled = false;
+                    registerSubmitBtn.textContent = 'Зарегистрироваться';
+                }
+            } catch (err) {
+                console.error('Register crypto error:', err);
+                errorEl.textContent = 'Ошибка при генерации ключей шифрования.';
+                errorEl.style.display = 'block';
+                registerSubmitBtn.disabled = false;
+                registerSubmitBtn.textContent = 'Зарегистрироваться';
+            }
+        });
     }
-} catch (err) {
-    console.error('Register crypto error:', err);
-    errorEl.textContent = 'Ошибка при генерации ключей шифрования.';
-    errorEl.style.display = 'block';
-    registerSubmitBtn.disabled = false;
-    registerSubmitBtn.textContent = 'Зарегистрироваться';
-}
-    });
-}
 
     // === 6. Обработка выхода (logout) ===
     const logoutBtn = document.querySelector('.header__logout-btn');
