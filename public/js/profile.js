@@ -270,7 +270,7 @@ function updateButtonByStatus(button, status, userId) {
             button.textContent = 'Удалить из друзей';
             button.disabled = false;
             button.classList.remove('profile-actions__btn--disabled');
-            // Можно добавить класс для красного цвета, если нужно: button.classList.add('profile-actions__btn--danger');
+            button.classList.add('profile-actions__btn--gray');
             button.onclick = () => removeFriend(userId, button);
             break;
             

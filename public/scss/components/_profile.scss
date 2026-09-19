@@ -630,3 +630,27 @@
     transform: none !important;
     box-shadow: none !important;
 }
+
+/* ==========================================
+   Стили для серой кнопки "Удалить из друзей"
+   ========================================== */
+.profile-actions__btn--gray {
+    background-color: #f3f4f6 !important; /* Светло-серый фон */
+    color: #4b5563 !important;            /* Темно-серый текст */
+    border: 1px solid #d1d5db !important; /* Серая рамка */
+    cursor: pointer !important;           /* Показываем, что кнопка кликабельна */
+    transition: all 0.2s ease;
+}
+
+/* Эффект при наведении */
+.profile-actions__btn--gray:hover {
+    background-color: #e5e7eb !important; /* Чуть темнее при наведении */
+    border-color: #9ca3af !important;
+    color: #1f2937 !important;
+}
+
+/* Эффект при нажатии */
+.profile-actions__btn--gray:active {
+    background-color: #d1d5db !important;
+    transform: scale(0.98); /* Легкое нажатие */
+}
