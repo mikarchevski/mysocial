@@ -1,15 +1,65 @@
 // src/routes/users.ts
 import { FastifyPluginAsync } from "fastify";
 import { eq, ilike, or, and, sql } from "drizzle-orm";
+import { z } from "zod"; // <-- 1. Импортируем Zod
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import AuthService from "../services/auth.service.js";
 
 const authService = new AuthService();
 
+// 2. Создаем строгую схему валидации для обновления профиля
+const updateProfileSchema = z.object({
+  city: z
+    .string()
+    .max(100)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v))
+    .refine((val) => !val || !/[<>]/.test(val), {
+      message: "Поле не должно содержать символы < или >",
+    }),
+
+  phone: z
+    .string()
+    .max(20)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+
+  // Бонус: проверяем, что website это действительно URL или пустая строка
+  website: z
+    .string()
+    .url("Некорректный формат ссылки")
+    .or(z.literal(""))
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+
+  familyStatus: z
+    .string()
+    .max(50)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v))
+    .refine((val) => !val || !/[<>]/.test(val), {
+      message: "Поле не должно содержать символы < или >",
+    }),
+
+  about: z
+    .string()
+    .max(1000)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v))
+    .refine((val) => !val || !/[<>]/.test(val), {
+      message: "Поле не должно содержать символы < или >",
+    }),
+
+  gender: z
+    .string()
+    .max(10)
+    .optional()
+    .transform((v) => (v === "" ? undefined : v)),
+});
+
 export const usersRoutes: FastifyPluginAsync = async (app) => {
   // 1. ПОЛУЧИТЬ ДАННЫЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (Строгий маршрут)
-  // Должен быть ПЕРВЫМ, чтобы перехватить запрос /me до того, как он попадет в /:id
   app.get(
     "/me",
     {
@@ -43,50 +93,57 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(404).send({ error: error.message });
     }
   });
-  
-  app.get("/search",{preValidation: [(app as any).authenticate],},
+
+  // 3. ПОИСК ПОЛЬЗОВАТЕЛЕЙ
+  app.get(
+    "/search",
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const { q } = request.query as { q?: string };
       const currentUserId = (request.user as any).userId;
 
-      // Валидация: минимум 2 символа для поиска
       if (!q || q.trim().length < 2) {
-        return reply.status(400).send({ error: "Поисковый запрос должен содержать минимум 2 символа" });
+        return reply
+          .status(400)
+          .send({
+            error: "Поисковый запрос должен содержать минимум 2 символа",
+          });
       }
 
       const searchPattern = `%${q.trim()}%`;
 
       try {
-        // Ищем по имени, фамилии или городу, исключая текущего пользователя
         const results = await db
           .select({
             id: users.id,
             firstName: users.firstName,
             lastName: users.lastName,
             city: users.city,
-            // Добавь avatarUrl или другие поля, если они есть в твоей схеме
           })
           .from(users)
           .where(
             and(
-              sql`${users.id} != ${currentUserId}`, // Не показывать себя в результатах
+              sql`${users.id} != ${currentUserId}`,
               or(
                 ilike(users.firstName, searchPattern),
                 ilike(users.lastName, searchPattern),
-                ilike(users.city, searchPattern)
-              )
-            )
+                ilike(users.city, searchPattern),
+              ),
+            ),
           )
-          .limit(20); // Ограничиваем выдачу 20 результатами
+          .limit(20);
 
         return { users: results, count: results.length };
       } catch (error) {
         console.error("Ошибка поиска пользователей:", error);
-        return reply.status(500).send({ error: "Внутренняя ошибка сервера при поиске" });
+        return reply
+          .status(500)
+          .send({ error: "Внутренняя ошибка сервера при поиске" });
       }
-    }
+    },
   );
-  // 3. ОБНОВЛЕНИЕ ПРОФИЛЯ (Только свой)
+
+  // 4. ОБНОВЛЕНИЕ ПРОФИЛЯ (Только свой)
   app.put(
     "/:id",
     {
@@ -103,20 +160,32 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: "Можно редактировать только свой профиль" });
       }
 
-      const { city, phone, website, familyStatus, about, gender } = request.body as any;
-
       try {
+        // 3. ВАЛИДИРУЕМ тело запроса через Zod перед обработкой
+        const validatedData = updateProfileSchema.parse(request.body);
+
         const user = await authService.updateUser(targetId, {
-          city: city ?? undefined,
-          phone: phone ?? undefined,
-          website: website ?? undefined,
-          familyStatus: familyStatus ?? undefined,
-          about: about ?? undefined,
-          gender: gender ?? undefined,
+          city: validatedData.city,
+          phone: validatedData.phone,
+          website: validatedData.website,
+          familyStatus: validatedData.familyStatus,
+          about: validatedData.about,
+          gender: validatedData.gender,
         });
+
         return { user };
       } catch (error: any) {
-        return reply.status(400).send({ error: error.message });
+        // 4. Если Zod отклонил запрос (например, из-за < или >), возвращаем понятную ошибку 400
+        if (error instanceof z.ZodError) {
+          return reply.status(400).send({
+            error: "Ошибка валидации данных",
+            details: error.errors.map((e: any) => e.message).join(", "),
+          });
+        }
+        // Для остальных ошибок (например, из authService)
+        return reply
+          .status(400)
+          .send({ error: error.message || "Ошибка обновления профиля" });
       }
     },
   );

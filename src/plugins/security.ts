@@ -1,9 +1,7 @@
 // src/plugins/security.ts
-
 import { FastifyPluginAsync } from "fastify";
 
 export const securityPlugin: FastifyPluginAsync = async (app) => {
-  // Middleware для проверки входных данных на подозрительные паттерны
   app.addHook("preHandler", async (request, reply) => {
     if (request.body && typeof request.body === "object") {
       const suspiciousPatterns = [
@@ -24,11 +22,8 @@ export const securityPlugin: FastifyPluginAsync = async (app) => {
               ip: request.ip,
               body: request.body,
             },
-            "Подозрительный запрос обнаружен",
+            "⚠️ Подозрительный запрос обнаружен",
           );
-
-          // Не блокируем запрос, но логируем для анализа
-          // Можно добавить rate limiting для этого IP
         }
       }
     }

@@ -5,8 +5,10 @@ import jwt from "@fastify/jwt";
 import cookie from "@fastify/cookie";
 import websocket from "@fastify/websocket";
 import staticFiles from "@fastify/static";
+import fastifyRateLimit from "@fastify/rate-limit";
 import * as path from "path";
 import { fileURLToPath } from "url";
+
 import { env } from "./config/env.js";
 import { authRoutes } from "./routes/auth.js";
 import { messageRoutes } from "./routes/messages.js";
@@ -15,20 +17,21 @@ import { redis } from "./redis/index.js";
 import { pool } from "./db/index.js";
 import { usersRoutes } from "./routes/users.js";
 import { postsRoutes } from "./routes/posts.js";
-import AuthService from "./services/auth.service.js";
 import { friendsRoutes } from "./routes/friends.js";
-import fastifyRateLimit from "@fastify/rate-limit";
 import { securityPlugin } from "./plugins/security.js";
+import AuthService from "./services/auth.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = Fastify({
   logger: true,
-  ignoreTrailingSlash: true, // Критически важно для SPA
+  ignoreTrailingSlash: true,
 });
 
-// 1. Плагины
+// ==========================================
+// 1. Регистрация базовых плагинов
+// ==========================================
 await app.register(cookie);
 await app.register(jwt, {
   secret: env.JWT_SECRET,
@@ -36,39 +39,40 @@ await app.register(jwt, {
 });
 await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
 await app.register(websocket);
+await app.register(securityPlugin);
 
-// === CSP ЗАГОЛОВКИ ===
+// ==========================================
+// 2. Глобальные заголовки безопасности (CSP и др.)
+// ==========================================
 app.addHook("onRequest", async (request, reply) => {
-  // Строгая CSP политика
   reply.header(
     "Content-Security-Policy",
     [
-      "default-src 'self'", // Запрет загрузки ресурсов с внешних доменов
-      "script-src 'self'", // Запрет инлайн-скриптов и внешних скриптов
-      "style-src 'self' 'unsafe-inline'", // Разрешаем инлайн-стили (нужно для SCSS)
-      "img-src 'self' data: blob:", // Разрешаем изображения из тех же источников и base64
-      "font-src 'self'", // Шрифты только с вашего домена
-      "connect-src 'self' ws: wss:", // WebSocket соединения
-      "frame-ancestors 'none'", // Запрет встраивания сайта в iframe (защита от clickjacking)
-      "base-uri 'self'", // Запрет изменения base URL
-      "form-action 'self'", // Формы могут отправляться только на ваш домен
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self'",
+      "connect-src 'self' ws: wss:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
     ].join("; "),
   );
-
-  // Дополнительные заголовки безопасности
-  reply.header("X-Content-Type-Options", "nosniff"); // Запрет MIME-type sniffing
-  reply.header("X-Frame-Options", "DENY"); // Запрет iframe (дублирует frame-ancestors)
-  reply.header("Referrer-Policy", "strict-origin-when-cross-origin"); // Контроль referrer
+  reply.header("X-Content-Type-Options", "nosniff");
+  reply.header("X-Frame-Options", "DENY");
+  reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
   reply.header(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
-  ); // Запрет доступа к API
+  );
 });
-// === КОНЕЦ CSP ===
-await app.register(securityPlugin);
-// 1.5. Rate Limiting (ГЛОБАЛЬНЫЕ НАСТРОЙКИ)
+
+// ==========================================
+// 3. Rate Limiting
+// ==========================================
 await app.register(fastifyRateLimit, {
-  max: 100, // Максимум 100 запросов в минуту с одного IP по умолчанию
+  max: 100,
   timeWindow: "1 minute",
   errorResponseBuilder: (request, context) => ({
     statusCode: 429,
@@ -76,7 +80,10 @@ await app.register(fastifyRateLimit, {
     message: `Слишком много запросов. Подождите ${Math.ceil(context.ttl / 1000)} сек.`,
   }),
 });
-// 2. Декораторы
+
+// ==========================================
+// 4. Декораторы и Глобальные обработчики
+// ==========================================
 app.decorate("authenticate", async function (request: any, reply: any) {
   try {
     await request.jwtVerify();
@@ -85,9 +92,7 @@ app.decorate("authenticate", async function (request: any, reply: any) {
   }
 });
 
-// 3. Глобальный обработчик 404 (МАКСИМАЛЬНО ПРОСТОЙ И НАДЕЖНЫЙ)
 app.setNotFoundHandler((request, reply) => {
-  // Для API отдаем JSON
   if (request.url.startsWith("/api/")) {
     return reply.status(404).send({
       message: `Route ${request.method}:${request.url} not found`,
@@ -95,12 +100,12 @@ app.setNotFoundHandler((request, reply) => {
       statusCode: 404,
     });
   }
-  // Для всех остальных случаев отдаем готовую HTML-страницу 404
-  // Убедитесь, что public/fragments/404.html это ПОЛНАЯ HTML-страница (с <html>, <head>, <body>)
   return reply.status(404).sendFile("fragments/404.html");
 });
 
-// 4. Явные маршруты для SPA разделов (ИСПРАВЛЕНИЕ ГЛАВНОЙ ПРОБЛЕМЫ)
+// ==========================================
+// 5. Маршруты для SPA (Frontend)
+// ==========================================
 app.get("/", async (request, reply) => {
   try {
     await request.jwtVerify();
@@ -114,34 +119,27 @@ app.get("/auth", async (request, reply) => {
   return reply.sendFile("auth.html");
 });
 
-// Явный маршрут для друзей
 app.get("/friends", async (request, reply) => {
   try {
     await request.jwtVerify();
-    // При прямом доступе к /friends всегда возвращаем index.html
     return reply.sendFile("index.html");
   } catch (err) {
     return reply.redirect("/auth");
   }
 });
 
-// Явный маршрут для диалогов
 app.get("/dialogs", async (request, reply) => {
   try {
     await request.jwtVerify();
-    // При прямом доступе к /dialogs всегда возвращаем index.html
     return reply.sendFile("index.html");
   } catch (err) {
     return reply.redirect("/auth");
   }
 });
 
-// 5. Динамические маршруты (профили по ID)
 app.get("/:id", async (request, reply) => {
   const { id } = request.params as { id: string };
 
-  // Если в пути есть точка (например, /style.css), это не ID пользователя.
-  // Передаем управление дальше к staticFiles или к 404
   if (id.includes(".")) {
     return reply.callNotFound();
   }
@@ -156,8 +154,6 @@ app.get("/:id", async (request, reply) => {
         return reply.status(404).sendFile("fragments/404.html");
       }
     }
-
-    // Если ID валиден или это строковое имя раздела, отдаем SPA-оболочку
     return reply.sendFile("index.html");
   } catch (error) {
     console.error(`❌ Ошибка при проверке ID ${id}:`, error);
@@ -165,20 +161,26 @@ app.get("/:id", async (request, reply) => {
   }
 });
 
-// 6. API Роуты
+// ==========================================
+// 6. API Маршруты (Backend)
+// ==========================================
 await app.register(authRoutes, { prefix: "/api/auth" });
 await app.register(messageRoutes, { prefix: "/api/messages" });
 await app.register(usersRoutes, { prefix: "/api/users" });
 await app.register(postsRoutes, { prefix: "/api/posts" });
 await app.register(friendsRoutes, { prefix: "/api/friends" });
 
-// 7. Статические файлы (СТРОГО ПОСЛЕ всех специфических маршрутов)
+// ==========================================
+// 7. Статические файлы (СТРОГО ПОСЛЕ всех роутов)
+// ==========================================
 await app.register(staticFiles, {
   root: path.join(__dirname, "../public"),
   prefix: "/",
 });
 
-// 8. WebSocket
+// ==========================================
+// 8. WebSocket и Health Check
+// ==========================================
 app.register(async function (fastify) {
   fastify.get(
     "/ws",
@@ -187,12 +189,13 @@ app.register(async function (fastify) {
   );
 });
 
-// 9. Health check
 app.get("/health", async () => {
   return { status: "ok", timestamp: new Date().toISOString() };
 });
 
-// 10. Запуск
+// ==========================================
+// 9. Запуск и завершение работы (БЫЛО ПРОПУЩЕНО РАНЕЕ)
+// ==========================================
 const start = async () => {
   try {
     await app.listen({ port: env.PORT, host: env.HOST });
