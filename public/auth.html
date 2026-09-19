@@ -25,6 +25,8 @@
                         <label for="regForm-loginEmail" class="regForm__label">Email</label>
                         <input type="email" id="regForm-loginEmail" name="email" class="regForm__input" required
                             autocomplete="username">
+                        <!-- Добавлен элемент для ошибки -->
+                        <div class="regForm__field-error" id="regForm-loginEmailError"></div>
                     </div>
                     <div class="regForm__group">
                         <label for="regForm-loginPassword" class="regForm__label">Пароль</label>
@@ -78,6 +80,7 @@
                         <label for="regForm-registerEmail" class="regForm__label">Email *</label>
                         <input type="email" id="regForm-registerEmail" name="email" class="regForm__input" required
                             autocomplete="username">
+                        <div class="regForm__field-error" id="regForm-registerEmailError"></div>
                     </div>
                     <div class="regForm__row">
                         <div class="regForm__group">

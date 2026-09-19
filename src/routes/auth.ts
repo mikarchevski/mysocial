@@ -2,6 +2,7 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import AuthService from "../services/auth.service.js";
+import { env } from "../config/env.js";
 
 const registerSchema = z
   .object({
@@ -47,66 +48,83 @@ const authService = new AuthService();
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   // Регистрация
-  app.post("/register", async (request, reply) => {
-    const body = registerSchema.parse(request.body);
-
-    try {
-      const user = await authService.register(body);
-
-      // Генерируем JWT токен сразу после регистрации
-      const token = app.jwt.sign({ userId: user.id }, { expiresIn: "1d" });
-
-      // Устанавливаем куку с токеном
-      reply.setCookie("token", token, {
-        path: "/",
-        httpOnly: true,
-        secure: false, // для разработки
-        sameSite: "lax",
-        maxAge: 24 * 60 * 60, // 1 день
-      });
-
-      // Возвращаем успешный ответ с пользователем
-      return reply.status(201).send({ user, success: true });
-    } catch (error: any) {
-      if (error.message === "Пользователь с таким email уже существует") {
-        return reply.status(409).send({ error: error.message });
-      }
-      return reply.status(500).send({ error: "Внутренняя ошибка сервера" });
-    }
-  });
-
-  // Вход
-  app.post("/login", async (request, reply) => {
-    const body = loginSchema.parse(request.body);
-    try {
-      const userData = await authService.login(body.email, body.password);
-      const expiresIn = body.rememberMe ? "30d" : "1d";
-      const token = app.jwt.sign({ userId: userData.id }, { expiresIn });
-
-      reply.setCookie("token", token, {
-        path: "/",
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Рекомендуется включить для продакшена
-        sameSite: "lax",
-        maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
-      });
-
-      // === ИЗМЕНИТЕ ВОЗВРАЩАЕМЫЙ ОБЪЕКТ ===
-      return {
-        user: {
-          id: userData.id,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
+  // 1. РЕГИСТРАЦИЯ со строгим лимитом
+  app.post(
+    "/register",
+    {
+      config: {
+        rateLimit: {
+          max: 5, // Только 5 попыток регистрации в минуту с одного IP
+          timeWindow: "1 minute",
         },
-        salt: userData.salt, // <-- ОТДАЕМ СОЛЬ
-        encryptedPrivateKey: userData.encryptedPrivateKey, // <-- ОТДАЕМ ЗАШИФРОВАННЫЙ КЛЮЧ
-        success: true,
-      };
-    } catch (error: any) {
-      return reply.status(401).send({ error: error.message });
-    }
-  });
+      },
+    },
+    async (request, reply) => {
+      const body = registerSchema.parse(request.body);
+      try {
+        const user = await authService.register(body);
+        const token = app.jwt.sign({ userId: user.id }, { expiresIn: "1d" });
+
+        reply.setCookie("token", token, {
+          path: "/",
+          httpOnly: true,
+          secure: env.NODE_ENV === "production", // Используйте env
+          sameSite: "lax",
+          maxAge: 24 * 60 * 60,
+        });
+
+        return reply.status(201).send({ user, success: true });
+      } catch (error: any) {
+        if (error.message === "Пользователь с таким email уже существует") {
+          return reply.status(409).send({ error: error.message });
+        }
+        return reply.status(500).send({ error: "Внутренняя ошибка сервера" });
+      }
+    },
+  );
+
+  // 2. ВХОД со строгим лимитом
+  app.post(
+    "/login",
+    {
+      config: {
+        rateLimit: {
+          max: 10, // Только 10 попыток входа в минуту с одного IP
+          timeWindow: "1 minute",
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = loginSchema.parse(request.body);
+      try {
+        const userData = await authService.login(body.email, body.password);
+        const expiresIn = body.rememberMe ? "30d" : "1d";
+        const token = app.jwt.sign({ userId: userData.id }, { expiresIn });
+
+        reply.setCookie("token", token, {
+          path: "/",
+          httpOnly: true,
+          secure: env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: body.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
+        });
+
+        return {
+          user: {
+            id: userData.id,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            email: userData.email,
+          },
+          salt: userData.salt,
+          encryptedPrivateKey: userData.encryptedPrivateKey,
+          success: true,
+        };
+      } catch (error: any) {
+        return reply.status(401).send({ error: error.message });
+      }
+    },
+  );
 
   // Получение текущего пользователя
   app.get(

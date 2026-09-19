@@ -264,4 +264,49 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // === Валидация email в реальном времени ===
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function validateEmailField(inputId, errorId) {
+        const input = document.getElementById(inputId);
+        const errorEl = document.getElementById(errorId);
+
+        if (!input || !errorEl) return;
+
+        input.addEventListener('blur', () => {
+            const value = input.value.trim();
+
+            // Если поле пустое и обязательное — не показываем ошибку (это сделает браузер при submit)
+            if (!value && input.required) {
+                errorEl.textContent = '';
+                errorEl.style.display = 'none';
+                input.classList.remove('regForm__input--error');
+                return;
+            }
+
+            // Если поле не пустое — проверяем формат
+            if (value && !emailRegex.test(value)) {
+                errorEl.textContent = 'Введите корректный email';
+                errorEl.style.display = 'block';
+                input.classList.add('regForm__input--error');
+            } else {
+                errorEl.textContent = '';
+                errorEl.style.display = 'none';
+                input.classList.remove('regForm__input--error');
+            }
+        });
+
+        // Убираем ошибку при начале ввода
+        input.addEventListener('input', () => {
+            if (input.classList.contains('regForm__input--error')) {
+                errorEl.textContent = '';
+                errorEl.style.display = 'none';
+                input.classList.remove('regForm__input--error');
+            }
+        });
+    }
+
+    // Применяем валидацию к обоим полям email
+    validateEmailField('regForm-loginEmail', 'regForm-loginEmailError');
+    validateEmailField('regForm-registerEmail', 'regForm-registerEmailError');
 });

@@ -17,6 +17,7 @@ import { usersRoutes } from "./routes/users.js";
 import { postsRoutes } from "./routes/posts.js";
 import AuthService from "./services/auth.service.js";
 import { friendsRoutes } from "./routes/friends.js";
+import fastifyRateLimit from "@fastify/rate-limit";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +35,16 @@ await app.register(jwt, {
 });
 await app.register(cors, { origin: env.CORS_ORIGIN, credentials: true });
 await app.register(websocket);
-
+// 1.5. Rate Limiting (ГЛОБАЛЬНЫЕ НАСТРОЙКИ)
+await app.register(fastifyRateLimit, {
+  max: 100, // Максимум 100 запросов в минуту с одного IP по умолчанию
+  timeWindow: "1 minute",
+  errorResponseBuilder: (request, context) => ({
+    statusCode: 429,
+    error: "Too Many Requests",
+    message: `Слишком много запросов. Подождите ${Math.ceil(context.ttl / 1000)} сек.`,
+  }),
+});
 // 2. Декораторы
 app.decorate("authenticate", async function (request: any, reply: any) {
   try {
