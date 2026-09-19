@@ -304,11 +304,6 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
 }
 .header__search-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -323,8 +318,11 @@ h1, h2, h3, h4, h5, h6 {
 .header__search-icon {
   width: 20px;
   height: 20px;
-  color: #666;
+  color: white;
   transition: all 0.3s ease;
+}
+.header__search-icon.moved {
+  color: black;
 }
 .header__search-input {
   width: 0;
@@ -335,11 +333,34 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
+  font-size: 15px;
 }
 .header__search-input.active {
-  width: 200px;
+  width: 320px;
   opacity: 1;
   visibility: visible;
+}
+.header__search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #999;
+  padding: 0;
+  line-height: 1;
+  display: none; /* Скрыт по умолчанию */
+  z-index: 10;
+  transition: color 0.2s ease;
+}
+.header__search-clear:hover {
+  color: #333;
+}
+.header__search-clear.active {
+  display: block;
 }
 .header__logo {
   font-size: 24px;

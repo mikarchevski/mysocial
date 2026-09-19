@@ -151,10 +151,14 @@ async function updateMyPageLink() {
 document.addEventListener('DOMContentLoaded', () => {
     const searchToggleBtn = document.getElementById('searchToggleBtn');
     const searchInput = document.getElementById('searchInput');
+    const searchIcon = document.getElementById('searchIcon');
+    const searchClean =  document.getElementById('headerSearchClear');
     
     searchToggleBtn.addEventListener('click', () => {
         searchInput.classList.toggle('active');
         searchToggleBtn.classList.toggle('moved');
+        searchIcon.classList.toggle('moved');
+        searchClean.classList.toggle('active');
         
         if (searchInput.classList.contains('active')) {
             searchInput.focus();
@@ -168,6 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!searchInput.value.trim()) {
             searchInput.classList.remove('active');
             searchToggleBtn.classList.remove('moved');
+            searchIcon.classList.remove('moved');
+            searchCleaner.classList.remove('active');
         }
     });
 

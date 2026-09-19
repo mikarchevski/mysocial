@@ -15,53 +15,78 @@
     justify-content: space-between;
     align-items: center;
   }
-   &__search-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  &__search-btn {
-    width: 40px;
-    height: 40px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 1;
-
-    &.moved {
-       transform: translateX(35px);
-      border-radius: 6px 0 0 6px;
+  &__search{
+    &-container {
+      position: relative;
+      display: flex;
+      align-items: center;
     }
-  }
 
-  &__search-icon {
-    width: 20px;
-    height: 20px;
-    color: #666;
-    transition: all 0.3s ease;
-  }
+    &-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 1;
 
-  &__search-input {
-    width: 0;
-    height: 40px;
-    padding: 0 12px 0 40px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    // margin-left: 8px;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
+      &.moved {
+        transform: translateX(35px);
+        border-radius: 6px 0 0 6px;
+      }
+    }
 
-    &.active {
-      width: 200px;
-      opacity: 1;
-      visibility: visible;
+    &-icon {
+      width: 20px;
+      height: 20px;
+      color: white;
+      transition: all 0.3s ease;
+
+      &.moved {
+        color: black;
+      }
+    }
+
+    &-input {
+      width: 0;
+      height: 40px;
+      padding: 0 12px 0 40px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      // margin-left: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      font-size: 15px;
+
+      &.active {
+        width: 320px;
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+    &-clear{
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: #999;
+      padding: 0;
+      line-height: 1;
+      display: none; /* Скрыт по умолчанию */
+      z-index: 10;
+      transition: color 0.2s ease;
+
+      &:hover {
+            color: #333;
+      }
+      &.active {
+          display: block; 
+      }
     }
   }
 
