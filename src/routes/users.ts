@@ -13,49 +13,39 @@ const updateProfileSchema = z.object({
   city: z
     .string()
     .max(100)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v))
-    .refine((val) => !val || !/[<>]/.test(val), {
-      message: "Поле не должно содержать символы < или >",
-    }),
-
+    .transform((v) => (v === "" ? null : v)),
   phone: z
     .string()
     .max(20)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v)),
-
-  // Бонус: проверяем, что website это действительно URL или пустая строка
+    .transform((v) => (v === "" ? null : v)),
   website: z
     .string()
-    .url("Некорректный формат ссылки")
-    .or(z.literal(""))
+    .max(255)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v)),
-
+    .transform((v) => (v === "" ? null : v)),
   familyStatus: z
     .string()
     .max(50)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v))
-    .refine((val) => !val || !/[<>]/.test(val), {
-      message: "Поле не должно содержать символы < или >",
-    }),
-
+    .transform((v) => (v === "" ? null : v)),
   about: z
     .string()
     .max(1000)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v))
-    .refine((val) => !val || !/[<>]/.test(val), {
-      message: "Поле не должно содержать символы < или >",
-    }),
-
+    .transform((v) => (v === "" ? null : v)),
   gender: z
     .string()
     .max(10)
+    .nullable()
     .optional()
-    .transform((v) => (v === "" ? undefined : v)),
+    .transform((v) => (v === "" ? null : v)),
 });
 
 export const usersRoutes: FastifyPluginAsync = async (app) => {
@@ -103,11 +93,9 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       const currentUserId = (request.user as any).userId;
 
       if (!q || q.trim().length < 2) {
-        return reply
-          .status(400)
-          .send({
-            error: "Поисковый запрос должен содержать минимум 2 символа",
-          });
+        return reply.status(400).send({
+          error: "Поисковый запрос должен содержать минимум 2 символа",
+        });
       }
 
       const searchPattern = `%${q.trim()}%`;
@@ -161,7 +149,7 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
-        // 3. ВАЛИДИРУЕМ тело запроса через Zod перед обработкой
+        // Валидируем и трансформируем данные
         const validatedData = updateProfileSchema.parse(request.body);
 
         const user = await authService.updateUser(targetId, {
@@ -175,17 +163,22 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
 
         return { user };
       } catch (error: any) {
-        // 4. Если Zod отклонил запрос (например, из-за < или >), возвращаем понятную ошибку 400
-        if (error instanceof z.ZodError) {
+        // Универсальная обработка ошибок Zod (работает и для v3, и для v4)
+        const issues = error?.issues || error?.errors;
+        if (issues && Array.isArray(issues)) {
+          const messages = issues
+            .map((e: any) => e.message || "Неверный формат данных")
+            .join(", ");
           return reply.status(400).send({
             error: "Ошибка валидации данных",
-            details: error.errors.map((e: any) => e.message).join(", "),
+            details: messages,
           });
         }
-        // Для остальных ошибок (например, из authService)
-        return reply
-          .status(400)
-          .send({ error: error.message || "Ошибка обновления профиля" });
+
+        console.error("Ошибка обновления профиля:", error);
+        return reply.status(400).send({
+          error: error.message || "Ошибка обновления профиля",
+        });
       }
     },
   );

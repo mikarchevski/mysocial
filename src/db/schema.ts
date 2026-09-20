@@ -21,12 +21,12 @@ export const users = pgTable("users", {
   city: varchar("city", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
   website: varchar("website", { length: 255 }),
-  familyStatus: varchar("family_status", { length: 50 }), // семейное положение
+  familyStatus: varchar("family_status", { length: 50 }),
   about: text("about"),
   publicKey: text("public_key"),
   encryptedPrivateKey: text("encrypted_private_key"),
   salt: jsonb("salt"),
-  gender: varchar("gender", { length: 10 }), // например, 'male', 'female', 'other'
+  gender: varchar("gender", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

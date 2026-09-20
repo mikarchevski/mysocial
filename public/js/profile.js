@@ -580,44 +580,46 @@ async function loadUserDataForEditModal() {
 }
 
 // Обработка сохранения формы редактирования профиля
+// Обработка сохранения формы редактирования профиля
 async function handleEditProfileSubmit(event) {
     event.preventDefault();
 
     try {
-        // Используем кэш для получения ID
+        // Получаем ID текущего пользователя из кэша
         const user = await getCurrentUser();
 
+        // Просто берем значения полей. Если поле пустое, это будет строка ""
         const data = {
-            city: document.getElementById('editCity').value || undefined,
-            phone: document.getElementById('editPhone').value || undefined,
-            website: document.getElementById('editWebsite').value || undefined,
-            gender: document.getElementById('editGender').value || undefined,
-            familyStatus: document.getElementById('editFamily').value || undefined,
-            about: document.getElementById('editAbout').value || undefined
+            city: document.getElementById('editCity').value,
+            phone: document.getElementById('editPhone').value,
+            website: document.getElementById('editWebsite').value,
+            gender: document.getElementById('editGender').value,
+            familyStatus: document.getElementById('editFamily').value,
+            about: document.getElementById('editAbout').value
         };
-
-        Object.keys(data).forEach(key => {
-            if (data[key] === undefined || data[key] === '') {
-                delete data[key];
-            }
-        });
 
         const res = await fetch(`/api/users/${user.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             credentials: 'include',
             body: JSON.stringify(data)
         });
 
         if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Ошибка сервера: ${errorText}`);
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.details || errorData.error || 'Не удалось сохранить изменения');
         }
+
+        const result = await res.json();
+
+        // ✅ ОБНОВЛЯЕМ КЭШ новыми данными с сервера
+        window.currentUser = { ...window.currentUser, ...result.user };
 
         closeEditModalFn();
 
-        // Обновляем кэш новыми данными и перерисовываем профиль
-        window.currentUser = { ...window.currentUser, ...data };
+        // Перерисовываем профиль, чтобы изменения сразу отобразились
         await loadProfileData();
 
     } catch (error) {
