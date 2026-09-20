@@ -74,11 +74,39 @@ app.addHook("onRequest", async (request, reply) => {
 await app.register(fastifyRateLimit, {
   max: 100,
   timeWindow: "1 minute",
-  errorResponseBuilder: (request, context) => ({
-    statusCode: 429,
-    error: "Too Many Requests",
-    message: `Слишком много запросов. Подождите ${Math.ceil(context.ttl / 1000)} сек.`,
-  }),
+  // Применяем rate limiting ТОЛЬКО к API маршрутам
+  allowList: (req, key) => {
+    // Разрешаем все GET запросы (страницы, статика)
+    if (req.method === "GET") {
+      return true;
+    }
+    // Разрешаем запросы к статическим файлам
+    if (
+      req.url.startsWith("/css/") ||
+      req.url.startsWith("/js/") ||
+      req.url.startsWith("/images/")
+    ) {
+      return true;
+    }
+    // Для всех POST/PUT/DELETE к API применяем лимит
+    return false;
+  },
+  errorResponseBuilder: (request, context) => {
+    // Если это API запрос — возвращаем JSON
+    if (request.url.startsWith("/api/")) {
+      return {
+        statusCode: 429,
+        error: "Too Many Requests",
+        message: `Слишком много запросов. Подождите ${Math.ceil(context.ttl / 1000)} сек.`,
+      };
+    }
+    // Если это запрос страницы — перенаправляем на /auth с параметром ошибки
+    return {
+      statusCode: 429,
+      error: "Too Many Requests",
+      message: `Слишком много запросов. Подождите ${Math.ceil(context.ttl / 1000)} сек.`,
+    };
+  },
 });
 
 // ==========================================

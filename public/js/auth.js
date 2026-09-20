@@ -77,8 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === 4. Обработка входа ===
-    // Глобальная переменная (в памяти) для хранения расшифрованного ключа текущей сессии.
-    // Она обнулится при перезагрузке страницы, что и является нашей целью безопасности!
     window.sessionPrivateKey = null;
     const loginForm = document.getElementById('regForm-loginForm');
     const loginSubmitBtn = loginForm ? loginForm.querySelector('.regForm__button') : null;
@@ -149,7 +147,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const data = await response.json();
+                if (response.status === 429) {
+                    // Извлекаем время ожидания из сообщения (например, "Подождите 24 сек.")
+                    const timeMatch = data.message.match(/Подождите\s+(\d+)\s*сек/);
+                    const seconds = timeMatch ? parseInt(timeMatch[1]) : 30;
 
+                    // Показываем ошибку с таймером
+                    errorEl.classList.add('rate-limit');
+                    errorEl.innerHTML = `
+                    ⏱️ Слишком много попыток входа. 
+                    <span class="timer" id="rateLimitTimer">${seconds}</span> сек.
+                `;
+                    errorEl.style.display = 'block';
+
+                    // Запускаем обратный отсчет
+                    let remainingSeconds = seconds;
+                    const timerInterval = setInterval(() => {
+                        remainingSeconds--;
+                        const timerEl = document.getElementById('rateLimitTimer');
+                        if (timerEl) {
+                            timerEl.textContent = remainingSeconds;
+                        }
+
+                        if (remainingSeconds <= 0) {
+                            clearInterval(timerInterval);
+                            errorEl.style.display = 'none';
+                        }
+                    }, 1000);
+
+                    // Разблокируем кнопку
+                    loginSubmitBtn.disabled = false;
+                    loginSubmitBtn.textContent = 'Войти';
+                    return;
+                }
                 if (response.ok) {
                     // Если вход успешен, расшифровываем приватный ключ
                     if (data.salt && data.encryptedPrivateKey) {
