@@ -80,9 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Глобальная переменная (в памяти) для хранения расшифрованного ключа текущей сессии.
     // Она обнулится при перезагрузке страницы, что и является нашей целью безопасности!
     window.sessionPrivateKey = null;
-
-    // === ОБРАБОТКА ВХОДА ===
-    // === ОБРАБОТКА ВХОДА ===
     const loginForm = document.getElementById('regForm-loginForm');
     const loginSubmitBtn = loginForm ? loginForm.querySelector('.regForm__button') : null;
 
@@ -207,8 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === 5. Обработка регистрации ===
-    // === ОБРАБОТКА РЕГИСТРАЦИИ ===
-    // === ОБРАБОТКА РЕГИСТРАЦИИ ===
     const registerForm = document.getElementById('regForm-registerForm');
     const registerSubmitBtn = registerForm ? registerForm.querySelector('.regForm__button') : null;
 

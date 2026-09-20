@@ -22,7 +22,7 @@ export const securityPlugin: FastifyPluginAsync = async (app) => {
               ip: request.ip,
               body: request.body,
             },
-            "⚠️ Подозрительный запрос обнаружен",
+            "Подозрительный запрос обнаружен",
           );
         }
       }

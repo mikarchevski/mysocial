@@ -5,8 +5,8 @@
 // ==========================================
 let currentDialogsFilter = 'all';
 let currentOpenDialog = null;
-let currentUserId = null; // Кэшируем ID, чтобы не делать лишний fetch при рендере
-const sentMessagesCache = new Map(); // Кэш для мгновенного доступа в текущей сессии
+let currentUserId = null;
+const sentMessagesCache = new Map();
 
 // ==========================================
 // 2. Инициализация
@@ -25,24 +25,23 @@ function initWebSocket() {
     // Создаем подключение к WebSocket серверу
     const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     const wsUrl = `${protocol}${window.location.host}/ws`;
-    
+
     try {
         wsConnection = new WebSocket(wsUrl);
-        
-        wsConnection.onopen = function(event) {
-            console.log('WebSocket соединение установлено');
+
+        wsConnection.onopen = function (event) {
             // Очищаем таймер переподключения при успешном подключении
             if (wsReconnectInterval) {
                 clearInterval(wsReconnectInterval);
                 wsReconnectInterval = null;
             }
         };
-        
-        wsConnection.onmessage = function(event) {
+
+        wsConnection.onmessage = function (event) {
             try {
                 const messageData = JSON.parse(event.data);
-                
-                switch(messageData.type) {
+
+                switch (messageData.type) {
                     case 'new_message':
                         // Проверяем, относится ли сообщение к текущему открытому диалогу
                         if (currentOpenDialog && currentOpenDialog === messageData.data.senderId) {
@@ -68,14 +67,12 @@ function initWebSocket() {
                 console.error('Ошибка при обработке WebSocket сообщения:', error);
             }
         };
-        
-        wsConnection.onclose = function(event) {
-            console.log('WebSocket соединение закрыто', event.code, event.reason);
-            // Пытаемся восстановить соединение
+
+        wsConnection.onclose = function (event) {
             scheduleReconnect();
         };
-        
-        wsConnection.onerror = function(error) {
+
+        wsConnection.onerror = function (error) {
             console.error('Ошибка WebSocket:', error);
         };
     } catch (error) {
@@ -86,24 +83,23 @@ function initWebSocket() {
 
 function scheduleReconnect() {
     if (wsReconnectInterval) {
-        return; // Уже запланировано переподключение
+        return;
     }
-    
+
     wsReconnectInterval = setInterval(() => {
-        console.log('Попытка переподключения к WebSocket...');
         initWebSocket();
-    }, 3000); // Повтор каждые 3 секунды
+    }, 3000);
 }
 
 // Функция для обновления текущего открытого диалога
 async function refreshCurrentDialog() {
     if (!currentOpenDialog) return;
-    
+
     try {
         const res = await fetch(`/api/messages/dialog/${currentOpenDialog}`, { credentials: 'include' });
         if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
         const data = await res.json();
-        
+
         // Получаем имя партнера
         let partnerName = 'Собеседник';
         const dialogItem = document.querySelector(`[data-dialog-id="${currentOpenDialog}"]`);
@@ -120,7 +116,7 @@ async function refreshCurrentDialog() {
                 partnerName = `${userData.user.firstName} ${userData.user.lastName}`;
             }
         }
-        
+
         // Обновляем отображение диалога
         renderOpenDialog(currentOpenDialog, partnerName, data.messages || []);
     } catch (error) {
@@ -141,22 +137,20 @@ function deferredInitDialogs() {
 
 // Модифицируем основную функцию инициализации
 async function initDialogs() {
-    console.log('=== ИНИЦИАЛИЗАЦИЯ СТРАНИЦЫ ДИАЛОГОВ ===');
-    
     // Проверяем наличие элементов перед инициализацией
     const dialogsListElement = document.getElementById('dialogsList');
     if (!dialogsListElement) {
-        console.error('❌ Элемент #dialogsList не найден! Проблема с загрузкой фрагмента');
+        console.error('Элемент #dialogsList не найден! Проблема с загрузкой фрагмента');
         return;
     }
 
     try {
         const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
         if (!meResponse.ok) throw new Error('Не авторизован');
-        
+
         const meData = await meResponse.json();
         currentUserId = meData.user.id; // 🔥 Кэшируем ID
-        
+
         const usernameSpan = document.getElementById('currentUsername');
         if (usernameSpan) {
             usernameSpan.textContent = `${meData.user.firstName} ${meData.user.lastName}`;
@@ -183,11 +177,9 @@ async function initDialogs() {
     }
 
     initDialogsEventListeners();
-    
+
     // Инициализируем WebSocket
     initWebSocket();
-    
-    console.log('=== ЗАВЕРШЕНИЕ ИНИЦИАЛИЗАЦИИ ===');
 }
 
 function initDialogsTabs() {
@@ -196,7 +188,7 @@ function initDialogsTabs() {
             const tabType = this.getAttribute('data-tab');
             document.querySelectorAll('.dialogs-tab').forEach(t => t.classList.remove('dialogs-tab--active'));
             this.classList.add('dialogs-tab--active');
-            
+
             document.querySelectorAll('.dialogs-tab-content').forEach(c => c.classList.remove('dialogs-tab-content--active'));
             document.getElementById(`tab-${tabType}`).classList.add('dialogs-tab-content--active');
         });
@@ -244,7 +236,7 @@ function initDialogsEventListeners() {
 async function loadDialogsList() {
     const container = document.getElementById('dialogsList');
     if (container) container.innerHTML = '<div class="loading" style="padding: 20px; text-align: center;">Загрузка диалогов...</div>';
-    
+
     try {
         const res = await fetch(`/api/messages/dialogs?filter=${currentDialogsFilter}`, { credentials: 'include' });
         if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
@@ -263,28 +255,17 @@ async function loadDialogsList() {
 function renderDialogsList(dialogs) {
     const container = document.getElementById('dialogsList');
     if (!container) return;
-    
-    console.log('Получены диалоги:', dialogs); // 🔥 Для отладки
-    
     if (!dialogs || dialogs.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>У вас пока нет диалогов</p></div>';
         return;
     }
-    
+
     container.innerHTML = dialogs.map(dialog => {
-        // 🔥 Получаем имя из разных возможных полей
+        // Получаем имя из разных возможных полей
         const firstName = dialog.firstName || dialog.user?.firstName || '';
         const lastName = dialog.lastName || dialog.user?.lastName || '';
         const userName = `${firstName} ${lastName}`.trim() || 'Пользователь';
-        
-        // 🔥 Для отладки выводим, что есть в dialog
-        console.log(`Диалог ${dialog.partnerId}:`, {
-            firstName: dialog.firstName,
-            lastName: dialog.lastName,
-            user: dialog.user,
-            partnerId: dialog.partnerId
-        });
-        
+
         return `
             <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId}, '${escapeHtml(userName)}')">
                 <div class="dialogs-list__avatar">
@@ -418,7 +399,7 @@ function showDialogsList() {
 async function sendChatMessage(recipientId) {
     const textarea = document.getElementById('messageTextarea');
     if (!textarea) return;
-    
+
     const plaintext = textarea.value.trim();
     if (!plaintext) {
         alert('Введите текст сообщения');
@@ -431,14 +412,14 @@ async function sendChatMessage(recipientId) {
     try {
         const userRes = await fetch(`/api/users/${recipientId}`, { credentials: 'include' });
         if (!userRes.ok) throw new Error(`Ошибка сервера: ${userRes.status}`);
-        
+
         const userData = await userRes.json();
         const publicKey = userData.user?.publicKey || userData.publicKey;
 
         if (!publicKey) throw new Error('У пользователя не настроено шифрование');
 
         const { encryptedContent, encryptedKey } = await encryptMessage(plaintext, publicKey);
-        
+
         // 🔥 1. СРАЗУ ДОБАВЛЯЕМ СООБЩЕНИЕ В UI (оптимистичное обновление)
         const messagesContainer = document.getElementById('messagesContainer');
         const tempMessageId = `temp_${Date.now()}`;
@@ -450,7 +431,7 @@ async function sendChatMessage(recipientId) {
         `;
         messagesContainer.insertAdjacentHTML('beforeend', tempMessageHtml);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
+
         // Очищаем поле ввода
         textarea.value = '';
         textarea.style.height = 'auto';
@@ -465,13 +446,13 @@ async function sendChatMessage(recipientId) {
 
         if (sendRes.ok) {
             const responseData = await sendRes.json().catch(() => ({}));
-            const newMessageId = responseData.message?.id; 
-            
+            const newMessageId = responseData.message?.id;
+
             // 🔥 3. СОХРАНЯЕМ plaintext И ЗАМЕНЯЕМ TEMP ID НА РЕАЛЬНЫЙ
             if (newMessageId) {
                 localStorage.setItem(`sent_msg_${newMessageId}`, plaintext);
                 sentMessagesCache.set(String(newMessageId), plaintext);
-                
+
                 // Заменяем временный ID на реальный
                 const tempMessage = document.querySelector(`[data-message-id="${tempMessageId}"]`);
                 if (tempMessage) {
@@ -479,7 +460,7 @@ async function sendChatMessage(recipientId) {
                     tempMessage.removeAttribute('data-temp');
                 }
             }
-            
+
         } else {
             const error = await sendRes.json().catch(() => ({}));
             throw new Error(error.error || 'Неизвестная ошибка сервера');
@@ -487,7 +468,7 @@ async function sendChatMessage(recipientId) {
     } catch (error) {
         console.error('Ошибка при отправке сообщения:', error);
         alert('Ошибка отправки: ' + error.message);
-        
+
         // 🔥 4. ПРИ ОШИБКЕ УДАЛЯЕМ ВРЕМЕННОЕ СООБЩЕНИЕ
         const tempMessage = document.querySelector(`[data-temp="true"]`);
         if (tempMessage) tempMessage.remove();
@@ -503,12 +484,12 @@ async function sendChatMessage(recipientId) {
 async function renderMessages(messagesFromServer, userId) {
     const myPrivateKey = localStorage.getItem('my_private_key');
     if (!myPrivateKey) {
-        return messagesFromServer.map(msg => ({...msg, text: '⚠️ Ключ не найден в браузере'}));
+        return messagesFromServer.map(msg => ({ ...msg, text: 'Ключ не найден в браузере' }));
     }
 
     return Promise.all(messagesFromServer.map(async (msg) => {
         try {
-            // 🔥 Пропускаем временные сообщения (они уже отображены)
+            //Пропускаем временные сообщения (они уже отображены)
             if (msg.isTemp) {
                 return { ...msg, text: msg.text };
             }
@@ -516,23 +497,23 @@ async function renderMessages(messagesFromServer, userId) {
             if (Number(msg.senderId) === userId) {
                 const persistedText = localStorage.getItem(`sent_msg_${msg.id}`);
                 if (persistedText) return { ...msg, text: persistedText };
-                
+
                 const cachedText = sentMessagesCache.get(String(msg.id));
                 if (cachedText) return { ...msg, text: cachedText };
-                
+
                 return { ...msg, text: '[Текст недоступен: кэш браузера очищен]' };
             }
 
             if (!msg.encryptedContent || !msg.encryptedKey) {
                 return { ...msg, text: '️ Нет зашифрованных данных' };
             }
-            
+
             const plaintext = await decryptMessage(msg.encryptedContent, msg.encryptedKey, myPrivateKey);
             return { ...msg, text: plaintext };
-            
+
         } catch (err) {
             console.error(`Ошибка обработки сообщения ${msg.id}:`, err);
-            return { ...msg, text: '⚠️ Ошибка отображения' };
+            return { ...msg, text: 'Ошибка отображения' };
         }
     }));
 }
@@ -597,7 +578,7 @@ function initDialogsTabs() {
             const tabType = this.getAttribute('data-tab');
             document.querySelectorAll('.dialogs-tab').forEach(t => t.classList.remove('dialogs-tab--active'));
             this.classList.add('dialogs-tab--active');
-            
+
             document.querySelectorAll('.dialogs-tab-content').forEach(c => c.classList.remove('dialogs-tab-content--active'));
             document.getElementById(`tab-${tabType}`).classList.add('dialogs-tab-content--active');
         });
@@ -619,7 +600,7 @@ function initDialogsEventListeners() {
 
     // Добавляем обработчики для фильтров
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-btn--active'));
             this.classList.add('filter-btn--active');
             currentDialogsFilter = this.getAttribute('data-filter');
@@ -636,7 +617,7 @@ function handleFriendsSearch(e) {
     window.searchFriendsTimeout = setTimeout(async () => {
         const query = e.target.value.trim();
         const url = query.length < 2 ? '/api/friends/list' : `/api/friends/list?search=${encodeURIComponent(query)}`;
-        
+
         try {
             const res = await fetch(url, { credentials: 'include' });
             if (!res.ok) throw new Error('Ошибка поиска');

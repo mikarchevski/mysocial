@@ -183,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.classList.remove('active');
       searchToggleBtn.classList.remove('moved');
       searchIcon.classList.remove('moved');
-      // 🐛 ИСПРАВЛЕНО: было searchCleaner (опечатка), стало searchClean
       if (searchClean) searchClean.classList.remove('active');
     }
   });
@@ -196,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // === ФУНКЦИИ ПОИСКА ===
-
 async function performSearch(query) {
   const trimmedQuery = query.trim();
 
@@ -239,9 +237,9 @@ async function performSearch(query) {
   }
 }
 
-// ✅ ИСПРАВЛЕНО (XSS): Полностью переписано с использованием безопасного DOM API
+//ИСПРАВЛЕНО (XSS): Полностью переписано с использованием безопасного DOM API
 function renderSearchResults(usersList, container) {
-  container.innerHTML = ''; // Очищаем предыдущие результаты
+  container.innerHTML = '';
 
   if (!usersList || usersList.length === 0) {
     container.innerHTML = '<div class="search-message">Никого не найдено</div>';

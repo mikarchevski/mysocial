@@ -17,7 +17,7 @@ export default class AuthService {
     city?: string;
     publicKey?: string;
     encryptedPrivateKey?: string; // <-- ДОБАВИТЬ
-    salt?: number[];              // <-- ДОБАВИТЬ
+    salt?: number[]; // <-- ДОБАВИТЬ
   }) {
     const existingUser = await this.usersRepo.findByEmail(data.email);
     if (existingUser) {
@@ -35,7 +35,7 @@ export default class AuthService {
       city: data.city || null,
       publicKey: data.publicKey || null,
       encryptedPrivateKey: data.encryptedPrivateKey || null, // <-- ДОБАВИТЬ
-      salt: data.salt || null,                               // <-- ДОБАВИТЬ
+      salt: data.salt || null, // <-- ДОБАВИТЬ
     });
 
     return {
@@ -62,11 +62,10 @@ export default class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      salt: user.salt,                 // <-- ДОБАВИТЬ
-      encryptedPrivateKey: user.encryptedPrivateKey, // <-- ДОБАВИТЬ
+      salt: user.salt,
+      encryptedPrivateKey: user.encryptedPrivateKey,
     };
   }
-
 
   async getUserById(id: number) {
     const user = await this.usersRepo.findById(id);
@@ -74,8 +73,6 @@ export default class AuthService {
       throw new Error("Пользователь не найден");
     }
 
-    // Проверяем, есть ли пол в схеме базы данных
-    // Если поле gender существует в таблице users, добавляем его в возвращаемые данные
     return {
       id: user.id,
       firstName: user.firstName,
@@ -87,10 +84,9 @@ export default class AuthService {
       website: user.website,
       familyStatus: user.familyStatus,
       about: user.about,
-      // Добавляем пол, если оно существует в базе данных
-      gender: user.gender || null, // Предполагаем, что поле может быть в базе данных
-      publicKey: user.publicKey, // Добавляем publicKey
-      createdAt: user.createdAt
+      gender: user.gender || null,
+      publicKey: user.publicKey,
+      createdAt: user.createdAt,
     };
   }
 
@@ -122,7 +118,6 @@ export default class AuthService {
       website: updatedUser.website,
       familyStatus: updatedUser.familyStatus,
       about: updatedUser.about,
-      // Добавляем пол, если оно обновляется
       gender: updatedUser.gender || null,
     };
   }

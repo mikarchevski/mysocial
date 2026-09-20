@@ -70,7 +70,7 @@ function formatGender(genderValue) {
 function setText(id, text) {
     const el = document.getElementById(id);
     if (el) {
-        el.textContent = text; // ✅ Безопасно: textContent автоматически экранирует
+        el.textContent = text;
         // Убираем класс скелетона, если он был
         el.classList.remove('skeleton', 'skeleton--medium', 'skeleton--short', 'skeleton--long');
     }
@@ -143,7 +143,7 @@ async function loadProfileData() {
                                 </div>
                             </div>
                         </div>
-                    `; // ✅ Безопасно: здесь нет переменных пользователя, только статический HTML
+                    `;
                     return;
                 }
                 throw new Error('Не удалось загрузить профиль');
@@ -218,7 +218,6 @@ async function loadProfileData() {
 
 // Проверка статуса дружбы и обновление кнопки
 async function checkFriendshipStatus(userId, button) {
-    console.log('🔥 Проверка статуса дружбы для userId:', userId);
 
     try {
         const response = await fetch(`/api/friends/status/${userId}`, {
@@ -231,11 +230,9 @@ async function checkFriendshipStatus(userId, button) {
         }
 
         const data = await response.json();
-        console.log(' Данные статуса дружбы:', data);
 
         // 🔥 ИСПРАВЛЕНИЕ: Правильно извлекаем статус из вложенной структуры
         const status = data.status?.status || data.status;
-        console.log('🔥 Извлеченный статус:', status);
 
         updateButtonByStatus(button, status, userId);
 
@@ -246,7 +243,6 @@ async function checkFriendshipStatus(userId, button) {
 
 // Вспомогательная функция для обновления кнопки по статусу
 function updateButtonByStatus(button, status, userId) {
-    console.log('🔥 updateButtonByStatus вызвана:', { status, userId, button });
 
     if (!button) {
         console.error('Кнопка не найдена');
@@ -258,7 +254,7 @@ function updateButtonByStatus(button, status, userId) {
 
     switch (status) {
         case 'friends':
-            // 🔥 ИЗМЕНЕНИЕ: Кнопка теперь активна и предлагает удаление
+            //ИЗМЕНЕНИЕ: Кнопка теперь активна и предлагает удаление
             button.textContent = 'Удалить из друзей';
             button.disabled = false;
             button.classList.remove('profile-actions__btn--disabled');
@@ -291,10 +287,8 @@ function updateButtonByStatus(button, status, userId) {
 
 // Отправка запроса в друзья
 async function sendFriendRequest(userId, button) {
-    console.log('Отправка запроса в друзья для userId:', userId);
-
     try {
-        // 🔥 Оптимистичное обновление: меняем кнопку сразу
+        //Оптимистичное обновление: меняем кнопку сразу
         button.disabled = true;
         button.textContent = 'Отправка...'; // Промежуточный статус
 
@@ -311,12 +305,11 @@ async function sendFriendRequest(userId, button) {
         // Успех: окончательно меняем состояние кнопки
         button.textContent = 'Заявка отправлена';
         button.classList.add('profile-actions__btn--disabled');
-        console.log('Заявка успешно отправлена');
 
     } catch (error) {
         console.error('Ошибка отправки запроса в друзья:', error);
 
-        // 🔥 Откат при ошибке: возвращаем кнопку в исходное состояние
+        //Откат при ошибке: возвращаем кнопку в исходное состояние
         button.disabled = false;
         button.textContent = 'Добавить в друзья';
         button.classList.remove('profile-actions__btn--disabled');
@@ -377,7 +370,7 @@ async function acceptFriendRequest(userId, button) {
 
 // Удаление из друзей
 async function removeFriend(userId, button) {
-    // 🔥 Подтверждение действия (хороший UX для деструктивных действий)
+    //Подтверждение действия
     if (!confirm('Вы уверены, что хотите удалить этого пользователя из друзей?')) {
         return;
     }
@@ -398,13 +391,11 @@ async function removeFriend(userId, button) {
             throw new Error(errorData.error || 'Не удалось удалить из друзей');
         }
 
-        // 🔥 Успех: возвращаем кнопку в состояние "Добавить в друзья"
+        //Успех: возвращаем кнопку в состояние "Добавить в друзья"
         button.textContent = 'Добавить в друзья';
         button.disabled = false;
         button.classList.remove('profile-actions__btn--disabled');
-        button.onclick = () => sendFriendRequest(userId, button); // Возвращаем обработчик для повторной отправки
-
-        console.log('Пользователь успешно удален из друзей');
+        button.onclick = () => sendFriendRequest(userId, button);
 
         // Если у тебя есть глобальная функция обновления счетчика друзей в сайдбаре, вызови её:
         if (window.updateFriendsCountBadge) {
@@ -414,7 +405,7 @@ async function removeFriend(userId, button) {
     } catch (error) {
         console.error('Ошибка удаления из друзей:', error);
 
-        // 🔥 Откат при ошибке: возвращаем кнопку в состояние "Удалить из друзей"
+        // Откат при ошибке: возвращаем кнопку в состояние "Удалить из друзей"
         button.disabled = false;
         button.textContent = 'Удалить из друзей';
         button.classList.remove('profile-actions__btn--disabled');

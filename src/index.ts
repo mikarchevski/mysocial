@@ -150,13 +150,13 @@ app.get("/:id", async (request, reply) => {
       const user = await authService.getUserById(parseInt(id, 10));
 
       if (!user) {
-        console.log(`⚠️ Пользователь с ID ${id} не найден в БД`);
+        console.log(`Пользователь с ID ${id} не найден в БД`);
         return reply.status(404).sendFile("fragments/404.html");
       }
     }
     return reply.sendFile("index.html");
   } catch (error) {
-    console.error(`❌ Ошибка при проверке ID ${id}:`, error);
+    console.error(`Ошибка при проверке ID ${id}:`, error);
     return reply.status(404).sendFile("fragments/404.html");
   }
 });
@@ -199,7 +199,7 @@ app.get("/health", async () => {
 const start = async () => {
   try {
     await app.listen({ port: env.PORT, host: env.HOST });
-    console.log(`🚀 Server running on http://${env.HOST}:${env.PORT}`);
+    console.log(`Server running on http://${env.HOST}:${env.PORT}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);

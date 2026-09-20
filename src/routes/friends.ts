@@ -149,9 +149,6 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // Пример для src/routes/friends.ts
-
-
   // Получить статус дружбы с пользователем
   app.get(
     "/status/:userId",
@@ -185,7 +182,7 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-    // Удалить из друзей
+  // Удалить из друзей
   app.delete(
     "/:userId",
     {
@@ -197,19 +194,28 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
       const targetUserId = parseInt(userId, 10);
 
       if (isNaN(targetUserId)) {
-        return reply.status(400).send({ error: "Некорректный ID пользователя" });
+        return reply
+          .status(400)
+          .send({ error: "Некорректный ID пользователя" });
       }
 
       if (currentUserId === targetUserId) {
-        return reply.status(400).send({ error: "Нельзя выполнить это действие с самим собой" });
+        return reply
+          .status(400)
+          .send({ error: "Нельзя выполнить это действие с самим собой" });
       }
 
       try {
-        const result = await friendsService.removeFriend(currentUserId, targetUserId);
+        const result = await friendsService.removeFriend(
+          currentUserId,
+          targetUserId,
+        );
         return result;
       } catch (error: any) {
         console.error("Ошибка при удалении из друзей:", error);
-        return reply.status(400).send({ error: error.message || "Ошибка при удалении из друзей" });
+        return reply
+          .status(400)
+          .send({ error: error.message || "Ошибка при удалении из друзей" });
       }
     },
   );

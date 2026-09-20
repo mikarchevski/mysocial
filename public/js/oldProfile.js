@@ -78,10 +78,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Показываем/скрываем кнопку "Добавить в друзья"
-  // public/js/profile.js
-  // Обновляем код кнопки "Добавить в друзья" (вместо существующего обработчика в строках 73-101)
-
-  // Показываем/скрываем кнопку "Добавить в друзья"
   const addFriendBtn = document.getElementById('addFriendBtn');
   if (addFriendBtn && !isOwnProfile) {
     addFriendBtn.style.display = 'block';
@@ -92,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         case 'friends':
           addFriendBtn.textContent = 'Друзья';
           addFriendBtn.disabled = true;
-          addFriendBtn.classList.add('profile-actions__btn--disabled'); // если хотим дополнительные стили
+          addFriendBtn.classList.add('profile-actions__btn--disabled');
           break;
         case 'request_sent':
           addFriendBtn.textContent = 'Заявка отправлена';
@@ -158,8 +154,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           alert('Ошибка сети. Попробуйте позже.');
         }
       } else if (currentStatus === 'Принять заявку') {
-        // Обработка принятия заявки (реализация на ваше усмотрение)
-        console.log('Реализовать принятие заявки');
       }
     });
   } else if (addFriendBtn) {
