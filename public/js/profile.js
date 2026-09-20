@@ -77,8 +77,8 @@ function setText(id, text) {
 }
 
 // Загрузка данных профиля
+// Загрузка данных профиля (ОПТИМИЗИРОВАННАЯ ВЕРСИЯ)
 async function loadProfileData() {
-    // Определяем ID пользователя из URL
     const path = window.location.pathname;
     const match = path.match(/^\/(\d+)$/);
 
@@ -94,35 +94,20 @@ async function loadProfileData() {
     }
 
     try {
-        // Проверяем, является ли это нашим профилем
-        const meResponse = await fetch('/api/auth/me', {
-            credentials: 'include'
-        });
+        // 1. ИСПОЛЬЗУЕМ ГЛОБАЛЬНЫЙ КЭШ (единственный запрос к /me, если он еще не сделан)
+        const currentUser = await getCurrentUser();
+        const isMyProfile = currentUser.id === userId;
 
-        let isMyProfile = false;
-
-        if (meResponse.ok) {
-            const meData = await meResponse.json();
-            isMyProfile = meData.user.id === userId;
-        }
-
-        // Загружаем данные профиля
         let userData;
         if (isMyProfile) {
-            // Если это наш профиль, используем эндпоинт /me
-            const response = await fetch('/api/auth/me', {
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error('Не удалось загрузить профиль');
-            const data = await response.json();
-            userData = data.user;
+            // Берем из кэша, лишний запрос не делаем
+            userData = currentUser;
         } else {
-            // Если чужой профиль, используем эндпоинт /api/users/:id
+            // Для чужого профиля делаем запрос
             const response = await fetch(`/api/users/${userId}`, {
                 credentials: 'include'
             });
             if (!response.ok) {
-                // Если пользователь не найден, покажем соответствующее сообщение
                 if (response.status === 404) {
                     document.getElementById('main-content').innerHTML = `
                         <div class="error-card">
@@ -152,7 +137,7 @@ async function loadProfileData() {
             userData = data.user;
         }
 
-        // Заполняем данные (функция setText внутри использует textContent, так что это безопасно)
+        // 2. Заполняем данные (функция setText внутри использует textContent, так что это безопасно)
         setText('profileName', `${userData.firstName} ${userData.lastName}` || 'Имя не указано');
         setText('userGender', formatGender(userData.gender) || 'Не указан');
         setText('userCity', userData.city || 'Не указано');
@@ -175,7 +160,6 @@ async function loadProfileData() {
         // Обновляем аватар
         const avatarImg = document.getElementById('userAvatar');
         if (avatarImg) {
-            // Используем плейсхолдер, если аватар не установлен
             avatarImg.src = '/images/default-avatar.svg';
         }
 
@@ -189,10 +173,8 @@ async function loadProfileData() {
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
             if (isMyProfile) {
-                // Не показываем кнопку "Добавить в друзья" для своего профиля
                 addFriendBtn.style.display = 'none';
             } else {
-                // Для чужого профиля проверяем статус дружбы
                 addFriendBtn.style.display = 'block';
                 await checkFriendshipStatus(userId, addFriendBtn);
             }
@@ -203,7 +185,6 @@ async function loadProfileData() {
 
     } catch (error) {
         console.error('Ошибка загрузки профиля:', error);
-        // ✅ УЛУЧШЕНО: Добавлено escapeHtml для error.message на случай, если сервер вернет что-то странное
         document.getElementById('main-content').innerHTML = `
             <div class="error-card">
                 <div class="error-content">
@@ -553,13 +534,9 @@ function openEditModalFn() {
 
 async function loadUserDataForEditModal() {
     try {
-        const response = await fetch('/api/auth/me', {
-            credentials: 'include'
-        });
-        if (!response.ok) throw new Error('Не авторизован');
-        const { user } = await response.json();
+        // Используем кэш вместо нового запроса
+        const user = await getCurrentUser();
 
-        // Заполняем поля данными пользователя
         document.getElementById('editGender').value = user.gender || '';
         document.getElementById('editCity').value = user.city || '';
         document.getElementById('editPhone').value = user.phone || '';
@@ -585,16 +562,30 @@ function switchWallFilter(filter) {
 }
 
 // Обработка сохранения формы редактирования профиля
+// Загрузка данных для модального окна редактирования
+async function loadUserDataForEditModal() {
+    try {
+        // Используем кэш вместо нового запроса
+        const user = await getCurrentUser();
+
+        document.getElementById('editGender').value = user.gender || '';
+        document.getElementById('editCity').value = user.city || '';
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editWebsite').value = user.website || '';
+        document.getElementById('editFamily').value = user.familyStatus || '';
+        document.getElementById('editAbout').value = user.about || '';
+    } catch (error) {
+        console.error('Ошибка загрузки данных для модального окна:', error);
+    }
+}
+
+// Обработка сохранения формы редактирования профиля
 async function handleEditProfileSubmit(event) {
     event.preventDefault();
 
     try {
-        // Получаем ID текущего пользователя
-        const response = await fetch('/api/auth/me', {
-            credentials: 'include'
-        });
-        if (!response.ok) throw new Error('Не авторизован');
-        const { user } = await response.json();
+        // Используем кэш для получения ID
+        const user = await getCurrentUser();
 
         const data = {
             city: document.getElementById('editCity').value || undefined,
@@ -605,7 +596,6 @@ async function handleEditProfileSubmit(event) {
             about: document.getElementById('editAbout').value || undefined
         };
 
-        // Убираем undefined значения
         Object.keys(data).forEach(key => {
             if (data[key] === undefined || data[key] === '') {
                 delete data[key];
@@ -614,10 +604,8 @@ async function handleEditProfileSubmit(event) {
 
         const res = await fetch(`/api/users/${user.id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include', // Исправлено: вынесено из headers
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(data)
         });
 
@@ -627,7 +615,11 @@ async function handleEditProfileSubmit(event) {
         }
 
         closeEditModalFn();
-        await loadProfileData(); // Обновляем данные профиля после сохранения
+
+        // Обновляем кэш новыми данными и перерисовываем профиль
+        window.currentUser = { ...window.currentUser, ...data };
+        await loadProfileData();
+
     } catch (error) {
         console.error('Ошибка сохранения:', error);
         alert('Не удалось сохранить изменения: ' + error.message);

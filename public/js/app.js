@@ -1,41 +1,83 @@
 // public/js/app.js
 
-// Функция инициализации приложения
+// ==========================================
+// 1. ГЛОБАЛЬНОЕ КЭШИРОВАНИЕ ПОЛЬЗОВАТЕЛЯ
+// ==========================================
+window.currentUser = null;
+let currentUserFetchPromise = null;
+let isAppInitialized = false;
+
+async function getCurrentUser() {
+  if (window.currentUser) {
+    return window.currentUser;
+  }
+
+  if (currentUserFetchPromise) {
+    return currentUserFetchPromise;
+  }
+
+  currentUserFetchPromise = fetch('/api/auth/me', {
+    credentials: 'include'
+  })
+    .then(response => {
+      if (!response.ok) throw new Error('Not authorized');
+      return response.json();
+    })
+    .then(data => {
+      window.currentUser = data.user;
+      currentUserFetchPromise = null;
+      return window.currentUser;
+    })
+    .catch(error => {
+      currentUserFetchPromise = null;
+      throw error;
+    });
+
+  return currentUserFetchPromise;
+}
+
+function clearUserCache() {
+  window.currentUser = null;
+  currentUserFetchPromise = null;
+  isAppInitialized = false;
+}
+
+// ==========================================
+// 2. ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+// ==========================================
 async function initApp() {
+  // Предотвращаем повторную инициализацию
+  if (isAppInitialized) {
+    console.log('App already initialized, skipping...');
+    return;
+  }
+
   // Проверяем, на какой странице мы находимся
   const currentPath = window.location.pathname;
 
   // Если это главная страница ("/"), перенаправляем на страницу профиля текущего пользователя
   if (currentPath === '/' || currentPath === '') {
     try {
-      // Получаем информацию о текущем пользователе
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include'
-      });
+      // ИСПОЛЬЗУЕМ КЭШ вместо прямого fetch
+      const currentUser = await getCurrentUser();
 
-      if (response.ok) {
-        const data = await response.json();
-        // Переходим на страницу профиля текущего пользователя
-        const profileUrl = `/${data.user.id}`;
-        window.history.replaceState({ path: profileUrl }, '', profileUrl);
+      // Переходим на страницу профиля текущего пользователя
+      const profileUrl = `/${currentUser.id}`;
+      window.history.replaceState({ path: profileUrl }, '', profileUrl);
 
-        // Обновляем ссылку "Моя страница"
-        updateMyPageLink(data.user.id);
+      // Обновляем ссылку "Моя страница"
+      updateMyPageLink(currentUser.id);
 
-        // Загружаем содержимое страницы профиля
-        if (typeof loadPageContent === 'function') {
-          await loadPageContent(profileUrl);
+      // Загружаем содержимое страницы профиля
+      if (typeof loadPageContent === 'function') {
+        await loadPageContent(profileUrl);
 
-          // После загрузки содержимого страницы профиля, инициализируем профиль
-          if (typeof initProfile === 'function') {
-            setTimeout(initProfile, 100); // Небольшая задержка для гарантии загрузки DOM
-          }
-        } else if (typeof initProfile === 'function') {
-          initProfile();
+        // После загрузки содержимого страницы профиля, инициализируем профиль
+        if (typeof initProfile === 'function') {
+          setTimeout(initProfile, 100); // Небольшая задержка для гарантии загрузки DOM
         }
-      } else {
-        // Если пользователь не авторизован, перенаправляем на страницу входа
-        window.location.href = '/auth';
+      } else if (typeof initProfile === 'function') {
+        initProfile();
       }
     } catch (error) {
       console.error('Ошибка получения информации о пользователе:', error);
@@ -74,58 +116,56 @@ async function initApp() {
   if (typeof updateSidebar === 'function') {
     updateSidebar();
   }
+
+  isAppInitialized = true;
 }
 
-// Функция обновления информации о пользователе в шапке
+// ==========================================
+// 3. ОБНОВЛЕНИЕ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЕ В ШАПКЕ
+// ==========================================
 async function updateUserInfo() {
   try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include'
-    });
+    // ИСПОЛЬЗУЕМ КЭШ вместо fetch
+    const currentUser = await getCurrentUser();
 
-    if (response.ok) {
-      const data = await response.json();
-      const currentUser = data.user;
+    // Обновляем имя пользователя в шапке
+    const usernameSpan = document.getElementById('currentUsername');
+    if (usernameSpan) {
+      usernameSpan.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+      usernameSpan.classList.remove('skeleton', 'skeleton--medium');
+    }
 
-      // Обновляем имя пользователя в шапке
-      const usernameSpan = document.getElementById('currentUsername');
-      if (usernameSpan) {
-        usernameSpan.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-        usernameSpan.classList.remove('skeleton', 'skeleton--medium');
-      }
+    // Показываем кнопку "Выйти" и вешаем обработчик
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.style.display = 'inline-block';
 
-      // Показываем кнопку "Выйти" и вешаем обработчик
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) {
-        logoutBtn.style.display = 'inline-block';
+      // Удаляем старый обработчик (если был) и добавляем новый
+      logoutBtn.replaceWith(logoutBtn.cloneNode(true));
+      const newLogoutBtn = document.getElementById('logoutBtn');
 
-        // Удаляем старый обработчик (если был) и добавляем новый
-        logoutBtn.replaceWith(logoutBtn.cloneNode(true));
-        const newLogoutBtn = document.getElementById('logoutBtn');
+      newLogoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+          });
 
-        newLogoutBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await fetch('/api/auth/logout', {
-              method: 'POST',
-              credentials: 'include'
-            });
+          // Очищаем приватный ключ из памяти
+          window.sessionPrivateKey = null;
 
-            // Очищаем приватный ключ из памяти
-            window.sessionPrivateKey = null;
+          // Очищаем кэш пользователя
+          clearUserCache();
 
-            // Перенаправляем на страницу авторизации
-            window.location.href = '/auth';
-          } catch (error) {
-            console.error('Ошибка при выходе:', error);
-            // Даже при ошибке пытаемся выйти
-            window.location.href = '/auth';
-          }
-        });
-      }
-    } else {
-      // Пользователь не авторизован
-      window.location.href = '/auth';
+          // Перенаправляем на страницу авторизации
+          window.location.href = '/auth';
+        } catch (error) {
+          console.error('Ошибка при выходе:', error);
+          // Даже при ошибке пытаемся выйти
+          window.location.href = '/auth';
+        }
+      });
     }
   } catch (error) {
     console.error('Ошибка при обновлении информации о пользователе:', error);
@@ -133,29 +173,24 @@ async function updateUserInfo() {
   }
 }
 
-// Функция обновления ссылки "Моя страница"
-async function updateMyPageLink() {
+// ==========================================
+// 4. ОБНОВЛЕНИЕ ССЫЛКИ "МОЯ СТРАНИЦА"
+// ==========================================
+async function updateMyPageLink(userId) {
   try {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include'
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const currentUser = data.user;
-
-      // Обновляем href ссылки "Моя страница"
-      const myPageLink = document.getElementById('myPageLink');
-      if (myPageLink) {
-        myPageLink.href = `/${currentUser.id}`;
-      }
+    const currentUser = await getCurrentUser();
+    const myPageLink = document.getElementById('myPageLink');
+    if (myPageLink) {
+      myPageLink.href = `/${userId || currentUser.id}`;
     }
   } catch (error) {
     console.error('Ошибка при обновлении ссылки "Моя страница":', error);
   }
 }
 
-// В app.js или отдельном файле для поиска
+// ==========================================
+// 5. ОБРАБОТЧИКИ ПОИСКА
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   const searchToggleBtn = document.getElementById('searchToggleBtn');
   const searchInput = document.getElementById('searchInput');
@@ -183,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.classList.remove('active');
       searchToggleBtn.classList.remove('moved');
       searchIcon.classList.remove('moved');
+      // Исправлено: было searchCleaner, стало searchClean
       if (searchClean) searchClean.classList.remove('active');
     }
   });
@@ -194,7 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// === ФУНКЦИИ ПОИСКА ===
+// ==========================================
+// 6. ФУНКЦИИ ПОИСКА
+// ==========================================
 async function performSearch(query) {
   const trimmedQuery = query.trim();
 
@@ -237,9 +275,9 @@ async function performSearch(query) {
   }
 }
 
-//ИСПРАВЛЕНО (XSS): Полностью переписано с использованием безопасного DOM API
+// ИСПРАВЛЕНО (XSS): Полностью переписано с использованием безопасного DOM API
 function renderSearchResults(usersList, container) {
-  container.innerHTML = '';
+  container.innerHTML = ''; // Очищаем предыдущие результаты
 
   if (!usersList || usersList.length === 0) {
     container.innerHTML = '<div class="search-message">Никого не найдено</div>';
@@ -291,6 +329,9 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ==========================================
+// 7. ДОПОЛНИТЕЛЬНЫЙ ОБРАБОТЧИК КНОПКИ ВЫХОДА
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   // Гарантированно вешаем обработчик на кнопку выхода
   const logoutBtn = document.getElementById('logoutBtn');
@@ -303,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
           credentials: 'include'
         });
         window.sessionPrivateKey = null;
+        clearUserCache();
         window.location.href = '/auth';
       } catch (error) {
         console.error('Ошибка при выходе:', error);
@@ -312,6 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ==========================================
+// 8. ЗАПУСК ПРИЛОЖЕНИЯ
+// ==========================================
 // Запускаем инициализацию при загрузке DOM
 document.addEventListener('DOMContentLoaded', initApp);
 
