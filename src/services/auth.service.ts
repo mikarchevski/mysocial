@@ -87,6 +87,8 @@ export default class AuthService {
       gender: user.gender || null,
       publicKey: user.publicKey,
       createdAt: user.createdAt,
+      salt: user.salt,
+      encryptedPrivateKey: user.encryptedPrivateKey,
     };
   }
 
