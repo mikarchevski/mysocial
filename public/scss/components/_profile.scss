@@ -1,5 +1,5 @@
 // Content
-@use '../variables' as *;
+@use "../variables" as *;
 .content {
   flex: 1;
   min-width: 0;
@@ -265,23 +265,23 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    &-input    {
-        resize: none;
-    padding: 10px 12px;
-    border: 1px solid $border-color;
-    border-radius: $border-radius;
-    font-size: 15px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    &-input {
+      resize: none;
+      padding: 10px 12px;
+      border: 1px solid $border-color;
+      border-radius: $border-radius;
+      font-size: 15px;
+      transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
 
-    &:focus {
+      &:focus {
         outline: none;
         border-color: $primary-color;
         box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
-    }
+      }
     }
   }
-
-  
 
   &__actions {
     display: flex;
@@ -493,9 +493,9 @@
   border-radius: 6px;
   margin-bottom: 8px;
 
-  &:hover {
-    background: #f5f6f8;
-  }
+  // &:hover {
+  //   background: #f5f6f8;
+  // }
 
   &__avatar {
     width: 40px;
@@ -612,10 +612,6 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
-
-      &:hover {
-        background: #3a6698;
-      }
     }
 
     .decline-btn {
@@ -634,43 +630,42 @@
   }
 }
 
-
 /* Стили для неактивной кнопки */
 .profile-actions__btn--disabled {
-    background-color: #cccccc !important;
-    color: #666666 !important;
-    cursor: not-allowed !important;
-    opacity: 0.6;
+  background-color: #cccccc !important;
+  color: #666666 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
 }
 
 .profile-actions__btn--disabled:hover {
-    background-color: #cccccc !important;
-    transform: none !important;
-    box-shadow: none !important;
+  background-color: #cccccc !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* ==========================================
    Стили для серой кнопки "Удалить из друзей"
    ========================================== */
 .profile-actions__btn--gray {
-    background-color: #f3f4f6 !important; /* Светло-серый фон */
-    color: #4b5563 !important;            /* Темно-серый текст */
-    border: 1px solid #d1d5db !important; /* Серая рамка */
-    cursor: pointer !important;           /* Показываем, что кнопка кликабельна */
-    transition: all 0.2s ease;
+  background-color: #f3f4f6 !important; /* Светло-серый фон */
+  color: #4b5563 !important; /* Темно-серый текст */
+  border: 1px solid #d1d5db !important; /* Серая рамка */
+  cursor: pointer !important; /* Показываем, что кнопка кликабельна */
+  transition: all 0.2s ease;
 }
 
 /* Эффект при наведении */
 .profile-actions__btn--gray:hover {
-    background-color: #e5e7eb !important; /* Чуть темнее при наведении */
-    border-color: #9ca3af !important;
-    color: #1f2937 !important;
+  background-color: #e5e7eb !important; /* Чуть темнее при наведении */
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
 }
 
 /* Эффект при нажатии */
 .profile-actions__btn--gray:active {
-    background-color: #d1d5db !important;
-    transform: scale(0.98); /* Легкое нажатие */
+  background-color: #d1d5db !important;
+  transform: scale(0.98); /* Легкое нажатие */
 }
 
 .profile-editor {
@@ -728,7 +723,9 @@
     line-height: 1;
     padding: 4px;
     border-radius: 4px;
-    transition: color 0.2s, background-color 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
 
     &:hover {
       color: #111827;
@@ -765,7 +762,9 @@
     font-size: 0.95rem;
     color: #111827;
     background-color: #ffffff;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s;
     box-sizing: border-box;
 
     &:focus {
@@ -821,4 +820,88 @@
       }
     }
   }
+}
+
+/* Стили для заявок в друзья - минималистичный вариант */
+
+.request-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e7e8ec;
+  transition: background 0.2s;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__avatar {
+    display: flex;
+    margin-right: 12px;
+
+    img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  }
+
+  &__info {
+    flex: 1;
+
+    .request-item__name {
+      color: #2a5885;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .accept-btn {
+    padding: 6px 16px;
+    background: #5181b8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #4a75a3;
+    }
+  }
+
+  .decline-btn {
+    padding: 6px 16px;
+    background: #f0f2f5;
+    color: #65686d;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #e5ebf1;
+    }
+  }
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #818c99;
+  font-size: 14px;
 }

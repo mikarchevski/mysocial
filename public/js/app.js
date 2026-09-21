@@ -7,6 +7,77 @@ window.currentUser = null;
 let currentUserFetchPromise = null;
 let isAppInitialized = false;
 
+// ==========================================
+// ✅ ДОБАВЛЕНО: WEBSOCKET ДЛЯ МГНОВЕННЫХ УВЕДОМЛЕНИЙ
+// ==========================================
+let websocketConnection = null;
+let websocketReconnectTimeout = null;
+
+function connectWebSocket() {
+  if (websocketConnection) {
+    websocketConnection.close();
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+  try {
+    websocketConnection = new WebSocket(wsUrl);
+
+    websocketConnection.onopen = () => {
+      console.log('✅ WebSocket подключен');
+    };
+
+    websocketConnection.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('📩 ПОЛУЧЕНО WS СООБЩЕНИЕ:', data);
+
+        // МГНОВЕННОЕ ОБНОВЛЕНИЕ БЕЙДЖА ЗАЯВОК В ДРУЗЬЯ
+        if (data.type === 'friend_request' ||
+          data.type === 'friend_request_accepted' ||
+          data.type === 'friend_request_declined') {
+
+          console.log('🔔 Обновляем бейдж заявок мгновенно!');
+          if (typeof window.updateFriendRequestsBadge === 'function') {
+            window.updateFriendRequestsBadge();
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка парсинга WebSocket сообщения:', error);
+      }
+    };
+
+    websocketConnection.onclose = () => {
+      console.log('⚠️ WebSocket отключен. Переподключение через 5 секунд...');
+      if (websocketReconnectTimeout) clearTimeout(websocketReconnectTimeout);
+      websocketReconnectTimeout = setTimeout(() => {
+        if (window.currentUser) connectWebSocket();
+      }, 5000);
+    };
+
+    websocketConnection.onerror = (error) => {
+      console.error('Ошибка WebSocket:', error);
+    };
+  } catch (error) {
+    console.error('Не удалось создать WebSocket соединение:', error);
+  }
+}
+
+function disconnectWebSocket() {
+  if (websocketReconnectTimeout) {
+    clearTimeout(websocketReconnectTimeout);
+    websocketReconnectTimeout = null;
+  }
+  if (websocketConnection) {
+    websocketConnection.close();
+    websocketConnection = null;
+  }
+}
+// ==========================================
+// КОНЕЦ ДОБАВЛЕННОГО БЛОКА WEBSOCKET
+// ==========================================
+
 async function getCurrentUser() {
   if (window.currentUser) {
     return window.currentUser;
@@ -40,6 +111,7 @@ function clearUserCache() {
   window.currentUser = null;
   currentUserFetchPromise = null;
   isAppInitialized = false;
+  disconnectWebSocket(); // ✅ ДОБАВЛЕНО: Закрываем WebSocket при выходе
 }
 
 // ==========================================
@@ -115,6 +187,15 @@ async function initApp() {
   // Обновляем сайдбар
   if (typeof updateSidebar === 'function') {
     updateSidebar();
+  }
+
+  if (typeof updateFriendRequestsBadge === 'function') {
+    updateFriendRequestsBadge();
+  }
+
+  // ✅ ДОБАВЛЕНО: Подключаемся к WebSocket, если пользователь авторизован
+  if (window.currentUser && !websocketConnection) {
+    connectWebSocket();
   }
 
   isAppInitialized = true;
@@ -353,7 +434,114 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+// ==========================================
+// E2EE РАЗБЛОКИРОВКА ПЕРЕПИСКИ
+// ==========================================
 
+// Проверяем, нужен ли ввод пароля для расшифровки
+function checkE2EEUnlock() {
+  if (!window.sessionPrivateKey) {
+    // Ключа нет в памяти — показываем модальное окно
+    showE2EEUnlockModal();
+  }
+}
+
+function showE2EEUnlockModal() {
+  const modal = document.getElementById('e2eeUnlockModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    const passwordInput = document.getElementById('e2eePassword');
+    if (passwordInput) {
+      setTimeout(() => passwordInput.focus(), 100);
+    }
+  }
+}
+
+function hideE2EEUnlockModal() {
+  const modal = document.getElementById('e2eeUnlockModal');
+  if (modal) {
+    modal.style.display = 'none';
+    const form = document.getElementById('e2eeUnlockForm');
+    if (form) form.reset();
+    const error = document.getElementById('e2eeUnlockError');
+    if (error) error.style.display = 'none';
+  }
+}
+
+// Обработчик формы разблокировки
+document.addEventListener('DOMContentLoaded', () => {
+  const unlockForm = document.getElementById('e2eeUnlockForm');
+  if (unlockForm) {
+    unlockForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('e2eePassword').value;
+      const errorEl = document.getElementById('e2eeUnlockError');
+
+      if (!password) {
+        errorEl.textContent = 'Введите пароль';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      try {
+        // Получаем зашифрованный ключ и соль с сервера
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error('Не авторизован');
+
+        const data = await response.json();
+
+        let saltArray;
+        if (typeof data.user.salt === 'string') {
+          try {
+            saltArray = JSON.parse(data.user.salt);
+          } catch (e) {
+            throw new Error('Неверный формат соли в базе данных');
+          }
+        } else if (Array.isArray(data.user.salt)) {
+          saltArray = data.user.salt;
+        }
+
+        if (!saltArray || !data.user.encryptedPrivateKey) {
+          throw new Error('Ключи не настроены для этого аккаунта. Создайте нового пользователя.');
+        }
+
+        const saltBuffer = new Uint8Array(saltArray);
+        const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
+
+        const decryptedKey = await window.E2EECrypto.decryptPrivateKey(
+          data.user.encryptedPrivateKey,
+          masterKey
+        );
+
+        // Сохраняем в оперативную память
+        window.sessionPrivateKey = decryptedKey;
+
+        console.log('✅ Ключ расшифрован и сохранён в памяти');
+        hideE2EEUnlockModal();
+
+        // Перезагружаем диалоги, чтобы они расшифровались
+        if (typeof loadDialogsList === 'function') {
+          loadDialogsList();
+        }
+
+      } catch (error) {
+        console.error('Ошибка расшифровки ключа:', error);
+        errorEl.textContent = 'Неверный пароль или ошибка расшифровки';
+        errorEl.style.display = 'block';
+      }
+    });
+  }
+});
+
+// Проверяем необходимость разблокировки при инициализации
+const originalInitApp = initApp;
+initApp = async function () {
+  await originalInitApp();
+  checkE2EEUnlock();
+};
 // ==========================================
 // 8. ЗАПУСК ПРИЛОЖЕНИЯ
 // ==========================================

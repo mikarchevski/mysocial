@@ -16,8 +16,8 @@ export default class AuthService {
     dateOfBirth: string;
     city?: string;
     publicKey?: string;
-    encryptedPrivateKey?: string; // <-- ДОБАВИТЬ
-    salt?: number[]; // <-- ДОБАВИТЬ
+    encryptedPrivateKey?: string;
+    salt?: string;
   }) {
     const existingUser = await this.usersRepo.findByEmail(data.email);
     if (existingUser) {

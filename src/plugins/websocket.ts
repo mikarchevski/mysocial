@@ -47,11 +47,59 @@ export async function websocketHandler(socket: WebSocket, request: any) {
       if (parsedMessage.type === "send_message") {
         // Обработка отправки сообщения через WebSocket
         // Можно добавить логику проверки и отправки через сервис сообщений
+      } else if (parsedMessage.type === "friend_request") {
+        notifyUserOfFriendRequest(parsedMessage.targetUserId, userId);
+      } else if (parsedMessage.type === "friend_request_accepted") {
+        notifyUserOfFriendRequestAccepted(parsedMessage.requesterId, userId);
+      } else if (parsedMessage.type === "friend_request_declined") {
+        notifyUserOfFriendRequestDeclined(parsedMessage.requesterId, userId);
       }
     } catch (err) {
       console.error("Error parsing WebSocket message:", err);
     }
   });
+}
+export function notifyUserOfFriendRequest(
+  targetUserId: number,
+  fromUserId: number,
+) {
+  const connection = activeConnections.get(targetUserId);
+  if (connection && connection.readyState === WebSocket.OPEN) {
+    connection.send(
+      JSON.stringify({
+        type: "friend_request",
+        fromUserId: fromUserId,
+      }),
+    );
+  }
+}
+export function notifyUserOfFriendRequestAccepted(
+  requesterId: number,
+  acceptedByUserId: number,
+) {
+  const connection = activeConnections.get(requesterId);
+  if (connection && connection.readyState === WebSocket.OPEN) {
+    connection.send(
+      JSON.stringify({
+        type: "friend_request_accepted",
+        acceptedBy: acceptedByUserId,
+      }),
+    );
+  }
+}
+export function notifyUserOfFriendRequestDeclined(
+  requesterId: number,
+  declinedByUserId: number,
+) {
+  const connection = activeConnections.get(requesterId);
+  if (connection && connection.readyState === WebSocket.OPEN) {
+    connection.send(
+      JSON.stringify({
+        type: "friend_request_declined",
+        declinedBy: declinedByUserId,
+      }),
+    );
+  }
 }
 
 // Функция для отправки уведомления о новом сообщении пользователю

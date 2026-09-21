@@ -183,7 +183,6 @@ function renderFriendsList(friends) {
         return;
     }
 
-    // ✅ ИЗМЕНЕНО: Убраны onclick, добавлены data-action и data-id. Добавлен escapeHtml для alt и src.
     container.innerHTML = friends.map(friend => `
         <div class="friend-item" data-user-id="${friend.id}">
             <div class="friend-item__avatar">
@@ -211,14 +210,13 @@ function renderFriendRequests(requests) {
         return;
     }
 
-    // ✅ ИЗМЕНЕНО: Убраны onclick, добавлены data-action и data-id. Добавлен escapeHtml для src.
     container.innerHTML = requests.map(request => `
         <div class="request-item" data-request-id="${request.id}">
             <div class="request-item__avatar">
                 <img src="${escapeHtml(request.avatar || '/images/default-avatar.svg')}" alt="${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}">
             </div>
             <div class="request-item__info">
-                <a href="/${request.id}" class="request-item__name spa-link">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</a>
+                <a href="/${request.fromUserId}" class="request-item__name spa-link">${escapeHtml(request.firstName)} ${escapeHtml(request.lastName)}</a>
             </div>
             <div class="request-item__actions">
                 <button class="accept-btn" data-action="accept" data-id="${request.id}">Принять</button>

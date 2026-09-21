@@ -62,6 +62,15 @@ function initWebSocket() {
                             window.updateUnreadMessagesBadge();
                         }
                         break;
+
+                    // ✅ ДОБАВЛЕНО: Мгновенное обновление бейджа заявок в друзья
+                    case 'friend_request':
+                    case 'friend_request_accepted':
+                    case 'friend_request_declined':
+                        if (typeof window.updateFriendRequestsBadge === 'function') {
+                            window.updateFriendRequestsBadge();
+                        }
+                        break;
                 }
             } catch (error) {
                 console.error('Ошибка при обработке WebSocket сообщения:', error);
@@ -249,6 +258,7 @@ async function loadDialogsList() {
         }
     }
 }
+
 // ==========================================
 // 4. Рендеринг списка диалогов
 // ==========================================
@@ -267,7 +277,7 @@ function renderDialogsList(dialogs) {
         const userName = `${firstName} ${lastName}`.trim() || 'Пользователь';
 
         return `
-            <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" onclick="openDialog(${dialog.partnerId}, '${escapeHtml(userName)}')">
+            <div class="dialogs-list__item" data-dialog-id="${dialog.partnerId}" data-dialog-name="${escapeHtml(userName)}">
                 <div class="dialogs-list__avatar">
                     <img src="/images/default-avatar.svg" alt="${escapeHtml(userName)}">
                     ${dialog.unreadCount > 0 ? `<span class="dialogs-list__badge">${dialog.unreadCount}</span>` : ''}
@@ -279,6 +289,14 @@ function renderDialogsList(dialogs) {
             </div>
         `;
     }).join('');
+
+    container.querySelectorAll('.dialogs-list__item').forEach(item => {
+        item.addEventListener('click', () => {
+            const partnerId = parseInt(item.dataset.dialogId, 10);
+            const partnerName = item.dataset.dialogName;
+            openDialog(partnerId, partnerName);
+        });
+    });
 }
 
 // ==========================================
@@ -332,11 +350,12 @@ function renderOpenDialog(partnerId, partnerName, messages) {
 
     container.innerHTML = '<div class="loading" style="padding: 20px; text-align: center;">Расшифровка сообщений...</div>';
 
-    // 🔥 Передаем currentUserId, чтобы избежать лишнего fetch внутри renderMessages
+    // Передаем currentUserId, чтобы избежать лишнего fetch внутри renderMessages
     renderMessages(messages, currentUserId).then(decryptedMessages => {
+        // 1. СНАЧАЛА вставляем HTML
         container.innerHTML = `
             <div class="dialog-messages-header">
-                <button class="back-to-list-btn" onclick="showDialogsList()">← Назад к списку</button>
+                <button class="back-to-list-btn" id="backToListBtn">← Назад к списку</button>
                 <h3 class="dialog-partner-name">${escapeHtml(partnerName || 'Собеседник')}</h3>
             </div>
             <div class="messages-container" id="messagesContainer">
@@ -349,10 +368,11 @@ function renderOpenDialog(partnerId, partnerName, messages) {
             </div>
             <div class="message-input-area">
                 <textarea id="messageTextarea" placeholder="Напишите сообщение..."></textarea>
-                <button onclick="sendChatMessage(${partnerId})">Отправить</button>
+                <button id="sendChatBtn" data-partner-id="${partnerId}">Отправить</button>            
             </div>
         `;
 
+        // 2. Настраиваем скролл и textarea
         const messagesContainer = document.getElementById('messagesContainer');
         if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -371,14 +391,35 @@ function renderOpenDialog(partnerId, partnerName, messages) {
             });
             adjustHeight();
         }
+
+        const backBtn = document.getElementById('backToListBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', showDialogsList);
+        }
+
+        const sendBtn = document.getElementById('sendChatBtn');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => {
+                sendChatMessage(parseInt(sendBtn.dataset.partnerId, 10));
+            });
+        }
+
     }).catch(err => {
         console.error('Критическая ошибка при расшифровке:', err);
         container.innerHTML = `
             <div class="error" style="color: red; padding: 20px; text-align: center;">
                 Не удалось отобразить переписку.
-                <br><button onclick="openDialog(${partnerId})" style="margin-top:10px;">Повторить</button>
+                <br><button id="retryOpenDialog" data-partner-id="${partnerId}" style="margin-top:10px; padding: 8px 16px; cursor: pointer;">Повторить</button>
             </div>
         `;
+
+        // ✅ 4. И для кнопки "Повторить" в случае ошибки тоже вешаем обработчик здесь
+        const retryBtn = document.getElementById('retryOpenDialog');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                openDialog(parseInt(retryBtn.dataset.partnerId, 10));
+            });
+        }
     });
 }
 
@@ -482,9 +523,12 @@ async function sendChatMessage(recipientId) {
 // 9. Расшифровка и рендер сообщений
 // ==========================================
 async function renderMessages(messagesFromServer, userId) {
-    const myPrivateKey = localStorage.getItem('my_private_key');
+    const myPrivateKey = window.sessionPrivateKey;
     if (!myPrivateKey) {
-        return messagesFromServer.map(msg => ({ ...msg, text: 'Ключ не найден в браузере' }));
+        return messagesFromServer.map(msg => ({
+            ...msg,
+            text: '🔒 Введите пароль для расшифровки'
+        }));
     }
 
     return Promise.all(messagesFromServer.map(async (msg) => {
@@ -547,8 +591,11 @@ function renderFriendsForMessaging(friends) {
         return;
     }
 
+    // Убираем onclick, добавляем data-атрибуты
     container.innerHTML = friends.map(friend => `
-        <div class="friends-list__item" onclick="startNewDialog(${friend.id}, '${escapeHtml(`${friend.firstName} ${friend.lastName}`)}')">
+        <div class="friends-list__item" 
+             data-friend-id="${friend.id}" 
+             data-friend-name="${escapeHtml(`${friend.firstName} ${friend.lastName}`)}">
             <div class="friends-list__item__avatar">
                 <img src="/images/default-avatar.svg" alt="Avatar">
             </div>
@@ -557,6 +604,16 @@ function renderFriendsForMessaging(friends) {
             </div>
         </div>
     `).join('');
+
+    // Навешиваем обработчики через делегирование
+    container.querySelectorAll('.friends-list__item').forEach(item => {
+        item.addEventListener('click', () => {
+            const friendId = parseInt(item.dataset.friendId, 10);
+            const friendName = item.dataset.friendName;
+            closeNewMessageModalFn();
+            openDialog(friendId, friendName);
+        });
+    });
 }
 
 function startNewDialog(friendId, friendName) {

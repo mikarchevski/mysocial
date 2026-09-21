@@ -45,7 +45,7 @@
                             title="Редактировать профиль">Ред.</button>
                     </li>
                     <li class="side-menu__item">
-                        <a href="/friends" class="side-menu__link spa-link">
+                        <a href="/friends" class="side-menu__link spa-link" data-tab="friends">
                             Мои друзья
                             <span class="side-menu__badge" id="friendRequestsBadge" style="display: none;">0</span>
                         </a>
@@ -64,6 +64,28 @@
             <!-- Сюда роутер вставит фрагмент -->
             <div class="loading">Загрузка...</div>
         </main>
+    </div>
+    <!-- Модальное окно для ввода пароля (расшифровка E2EE) -->
+    <div id="e2eeUnlockModal" class="modal" style="display: none;">
+        <div class="modal__content" style="max-width: 400px;">
+            <h2 class="modal__title">🔒 Разблокировать переписку</h2>
+            <p class="modal__description">
+                Для защиты ваших сообщений используется сквозное шифрование.
+                Введите пароль от аккаунта, чтобы расшифровать диалоги.
+            </p>
+            <form id="e2eeUnlockForm">
+                <div class="form-group">
+                    <label for="e2eePassword">Пароль</label>
+                    <input type="password" id="e2eePassword" class="form-control" placeholder="Введите пароль" required
+                        autocomplete="current-password">
+                </div>
+                <div id="e2eeUnlockError" class="error-message" style="display: none; color: red; margin: 10px 0;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Разблокировать
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- 1. Утилиты безопасности -->
