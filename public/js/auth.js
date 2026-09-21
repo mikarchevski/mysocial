@@ -181,37 +181,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 if (response.ok) {
-                    // Если вход успешен, расшифровываем приватный ключ
-                    if (data.user.salt && data.user.encryptedPrivateKey) { // Обратите внимание: данные могут быть в data.user
-                        try {
-                            // Безопасно преобразуем salt (может прийти как массив или как JSON-строка)
-                            let saltArray = data.user.salt;
-                            if (typeof data.user.salt === 'string') {
-                                saltArray = JSON.parse(data.user.salt);
-                            }
+                    console.log('🟢 Успешный ответ от сервера. Проверяем ключи...');
 
+                    if (data.salt && data.encryptedPrivateKey) {
+                        console.log('🟡 Начинаем процесс расшифровки...');
+                        try {
+                            let saltArray = data.salt;
+                            if (typeof data.salt === 'string') {
+                                saltArray = JSON.parse(data.salt);
+                            }
                             const saltBuffer = new Uint8Array(saltArray);
+                            console.log('🔑 Соль преобразована в Uint8Array');
+
                             const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
+                            console.log('🔑 Мастер-ключ успешно получен');
 
                             window.sessionPrivateKey = await window.E2EECrypto.decryptPrivateKey(
-                                data.user.encryptedPrivateKey,
+                                data.encryptedPrivateKey,
                                 masterKey
                             );
-                            console.log('✅ Приватный ключ успешно расшифрован и находится в оперативной памяти.');
+                            console.log('✅ Приватный ключ успешно расшифрован!');
 
-                            // Сохраняем в sessionStorage, чтобы пережить перезагрузку страницы (F5)
                             const jwk = await window.crypto.subtle.exportKey("jwk", window.sessionPrivateKey);
                             sessionStorage.setItem('temp_private_key_jwk', JSON.stringify(jwk));
+                            console.log('💾 Ключ сохранён в sessionStorage!');
 
                         } catch (cryptoErr) {
-                            console.error('Ошибка расшифровки ключа:', cryptoErr);
-                            alert('Ошибка расшифровки ключа. Проверьте пароль.');
+                            console.error('🔴 КРИТИЧЕСКАЯ ОШИБКА РАСШИФРОВКИ:', cryptoErr);
+                            // ВАЖНО: Показываем alert и ОСТАНАВЛИВАЕМ редирект, чтобы вы увидели ошибку
+                            alert('Ошибка расшифровки ключа! Проверьте консоль (F12). Возможно, введен неверный пароль или данные ключа повреждены.');
+                            loginSubmitBtn.disabled = false;
+                            loginSubmitBtn.textContent = 'Войти';
+                            return; // Прерываем выполнение, не делаем window.location.href
                         }
+                    } else {
+                        console.warn('⚠️ Поля salt или encryptedPrivateKey отсутствуют в ответе сервера!');
                     }
 
-                    // Очищаем поле пароля
+                    // Если всё прошло успешно, очищаем поле и делаем редирект
                     loginForm.querySelector('input[name="password"]').value = '';
-
                     window.location.href = '/';
                 } else {
                     errorEl.textContent = data.error || 'Неверный email или пароль';
@@ -379,14 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     credentials: 'include'
                 });
 
-                // Удаляем локальный ключ при выходе
-                localStorage.removeItem('my_private_key');
+                // ✅ Очищаем ключ из памяти и хранилища
+                window.sessionPrivateKey = null;
+                sessionStorage.removeItem('temp_private_key_jwk');
 
-                // Перенаправляем на страницу авторизации независимо от ответа сервера
+                // Перенаправляем на страницу авторизации
                 window.location.href = '/auth';
             } catch (error) {
                 console.error('Logout error:', error);
-                // Даже при ошибке сети перенаправляем
                 window.location.href = '/auth';
             }
         });

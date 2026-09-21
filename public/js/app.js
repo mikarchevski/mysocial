@@ -123,7 +123,42 @@ async function initApp() {
     console.log('App already initialized, skipping...');
     return;
   }
+  // ==========================================
+  // ✅ 1. ВОССТАНОВЛЕНИЕ КЛЮЧА ИЗ sessionStorage
+  // ==========================================
+  if (!window.sessionPrivateKey) {
+    console.log(' Ключа нет в памяти, проверяем sessionStorage...');
+    const storedJwk = sessionStorage.getItem('temp_private_key_jwk');
 
+    if (storedJwk) {
+      console.log(' Найден ключ в sessionStorage, пытаемся восстановить...');
+      try {
+        const jwk = JSON.parse(storedJwk);
+        console.log('🔑 JWK распарсен:', jwk);
+
+        window.sessionPrivateKey = await window.crypto.subtle.importKey(
+          "jwk",
+          jwk,
+          { name: "RSA-OAEP", hash: "SHA-256" },
+          true,
+          ["decrypt"]
+        );
+
+        console.log('✅ Приватный ключ успешно восстановлен из sessionStorage!');
+        console.log('🔑 Тип ключа:', window.sessionPrivateKey.type);
+        console.log('🔑 Алгоритм:', window.sessionPrivateKey.algorithm);
+
+      } catch (e) {
+        console.error("❌ КРИТИЧЕСКАЯ ОШИБКА при восстановлении ключа:", e);
+        console.error("Стек ошибки:", e.stack);
+        sessionStorage.removeItem('temp_private_key_jwk');
+      }
+    } else {
+      console.log('️ Ключа нет ни в памяти, ни в sessionStorage. Потребуется ввод пароля.');
+    }
+  } else {
+    console.log('✅ Ключ уже есть в памяти, восстановление не требуется.');
+  }
   // Проверяем, на какой странице мы находимся
   const currentPath = window.location.pathname;
 
@@ -197,7 +232,10 @@ async function initApp() {
   if (window.currentUser && !websocketConnection) {
     connectWebSocket();
   }
-
+  // ✅ 2. ПРОВЕРКА РАЗБЛОКИРОВКИ (строго после восстановления ключа!)
+  console.log(' Проверяем необходимость разблокировки...');
+  console.log('🔑 window.sessionPrivateKey:', window.sessionPrivateKey);
+  checkE2EEUnlock();
   isAppInitialized = true;
 }
 

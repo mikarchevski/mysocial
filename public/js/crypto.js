@@ -92,7 +92,7 @@ window.E2EECrypto = {
             "pkcs8",
             decryptedBuffer,
             { name: "RSA-OAEP", hash: "SHA-256" },
-            false,
+            true,
             ["decrypt"]
         );
     },
