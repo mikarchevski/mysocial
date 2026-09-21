@@ -1,87 +1,101 @@
 // public/js/sidebar.js
 
-// Обновляем состояние сайдбара
-function updateSidebar() {
-    // Проверяем, авторизован ли пользователь, и обновляем UI соответственно
-    fetch('/api/auth/me', {
-        credentials: 'include'
-    })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
+// Обновляем состояние сайдбара (ОПТИМИЗИРОВАНО с использованием кэша)
+async function updateSidebar() {
+    try {
+        // Используем глобальный кэш вместо нового fetch!
+        const user = await getCurrentUser();
+
+        if (user) {
+            // Показываем кнопку "Выйти"
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.style.display = 'inline-block';
+            }
+
+            // Обновляем имя пользователя
+            const usernameSpan = document.getElementById('currentUsername');
+            if (usernameSpan) {
+                usernameSpan.textContent = `${user.firstName} ${user.lastName}`;
+                usernameSpan.classList.remove('skeleton', 'skeleton--medium');
+            }
+
+            // Обновляем badge с количеством заявок в друзья
+            if (typeof window.updateFriendRequestsBadge === 'function') {
+                window.updateFriendRequestsBadge();
+            }
+
+            // Обновляем badge с количеством непрочитанных сообщений
+            if (typeof window.updateUnreadMessagesBadge === 'function') {
+                window.updateUnreadMessagesBadge();
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении сайдбара:', error);
+        window.location.href = '/auth';
+    }
+}
+
+// Функция получения и отображения количества входящих заявок
+async function updateFriendRequestsBadge() {
+    try {
+        const response = await fetch('/api/friends/requests', {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error('Не удалось получить список заявок');
+            return;
+        }
+
+        const data = await response.json();
+        const requests = data.requests || [];
+        const count = requests.length;
+
+        const badge = document.getElementById('friendRequestsBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'inline-flex';
             } else {
-                window.location.href = '/auth';
+                badge.style.display = 'none';
             }
-        })
-        .then(data => {
-            if (data && data.user) {
-                // Показываем кнопку "Выйти"
-                const logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) {
-                    logoutBtn.style.display = 'inline-block';
-
-                    // Обновляем имя пользователя
-                    const usernameSpan = document.getElementById('currentUsername');
-                    if (usernameSpan) {
-                        usernameSpan.textContent = `${data.user.firstName} ${data.user.lastName}`;
-                        usernameSpan.classList.remove('skeleton');
-                    }
-                }
-
-                // Обновляем badge с количеством заявок в друзья
-                updateFriendRequestsBadge();
-
-                // Обновляем badge с количеством непрочитанных сообщений
-                updateUnreadMessagesBadge();
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка при обновлении сайдбара:', error);
-            window.location.href = '/auth';
-        });
+        }
+    } catch (error) {
+        console.error('Ошибка обновления бейджа заявок:', error);
+    }
 }
 
-function updateFriendRequestsBadge() {
-    fetch('/api/friends/requests/count', {
-        credentials: 'include'
-    })
-        .then(response => response.json())
-        .then(data => {
-            const badge = document.getElementById('friendRequestsBadge');
-            if (badge) {
-                if (data.count > 0) {
-                    badge.textContent = data.count;
-                    badge.style.display = 'inline-block';
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка при обновлении badge заявок в друзья:', error);
+// Делаем функцию доступной глобально
+window.updateFriendRequestsBadge = updateFriendRequestsBadge;
+
+// Функция обновления бейджа непрочитанных сообщений
+async function updateUnreadMessagesBadge() {
+    try {
+        const response = await fetch('/api/messages/unread-count', {
+            credentials: 'include'
         });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const badge = document.getElementById('unreadBadge');
+
+        if (badge) {
+            if (data.unreadDialogs > 0) {
+                badge.textContent = data.unreadDialogs > 99 ? '99+' : data.unreadDialogs;
+                badge.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении badge непрочитанных сообщений:', error);
+    }
 }
 
-function updateUnreadMessagesBadge() {
-    fetch('/api/messages/unread-count', {
-        credentials: 'include'
-    })
-        .then(response => response.json())
-        .then(data => {
-            const badge = document.getElementById('unreadBadge');
-            if (badge) {
-                if (data.unreadDialogs > 0) {
-                    badge.textContent = data.unreadDialogs;
-                    badge.style.display = 'inline-block';
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка при обновлении badge непрочитанных сообщений:', error);
-        });
-}
+// Делаем функцию доступной глобально
+window.updateUnreadMessagesBadge = updateUnreadMessagesBadge;
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', updateSidebar);

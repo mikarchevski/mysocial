@@ -2,9 +2,9 @@
 // Заменим проблемную часть в методе getFriends
 
 // src/services/friends.service.ts
-import { db } from '../db/index.js';
-import { friendRequests, users } from '../db/schema.js';
-import { eq, and, exists, not, or, sql} from 'drizzle-orm';
+import { db } from "../db/index.js";
+import { friendRequests, users } from "../db/schema.js";
+import { eq, and, exists, not, or, sql } from "drizzle-orm";
 
 export default class FriendsService {
   // Отправить заявку в друзья
@@ -12,13 +12,13 @@ export default class FriendsService {
     // Проверяем, не являются ли пользователи уже друзьями
     const areFriends = await this.areFriends(fromUserId, toUserId);
     if (areFriends) {
-      throw new Error('Пользователи уже являются друзьями');
+      throw new Error("Пользователи уже являются друзьями");
     }
 
     // Проверяем, не отправлена ли уже заявка
     const existingRequest = await this.getFriendRequest(fromUserId, toUserId);
     if (existingRequest) {
-      throw new Error('Заявка в друзья уже отправлена');
+      throw new Error("Заявка в друзья уже отправлена");
     }
 
     // Создаем новую заявку
@@ -27,7 +27,7 @@ export default class FriendsService {
       .values({
         fromUserId,
         toUserId,
-        status: 'pending',
+        status: "pending",
       })
       .returning();
 
@@ -37,23 +37,26 @@ export default class FriendsService {
     // Проверяем, являются ли пользователи друзьями
     const areFriends = await this.areFriends(userId1, userId2);
     if (areFriends) {
-      return { status: 'friends' as const };
+      return { status: "friends" as const };
     }
 
     // Проверяем исходящую заявку (текущий пользователь -> другой пользователь)
     const outgoingRequest = await this.getFriendRequest(userId1, userId2);
     if (outgoingRequest) {
-      return { status: 'request_sent' as const, requestId: outgoingRequest.id };
+      return { status: "request_sent" as const, requestId: outgoingRequest.id };
     }
 
     // Проверяем входящую заявку (другой пользователь -> текущий пользователь)
     const incomingRequest = await this.getFriendRequest(userId2, userId1);
     if (incomingRequest) {
-      return { status: 'request_received' as const, requestId: incomingRequest.id };
+      return {
+        status: "request_received" as const,
+        requestId: incomingRequest.id,
+      };
     }
 
     // Нет связей
-    return { status: 'none' as const };
+    return { status: "none" as const };
   }
 
   // Принять заявку в друзья
@@ -62,20 +65,25 @@ export default class FriendsService {
     const request = await db
       .select()
       .from(friendRequests)
-      .where(and(eq(friendRequests.id, requestId), eq(friendRequests.toUserId, currentUserId)))
+      .where(
+        and(
+          eq(friendRequests.id, requestId),
+          eq(friendRequests.toUserId, currentUserId),
+        ),
+      )
       .limit(1);
 
     if (!request || request.length === 0) {
-      throw new Error('Заявка не найдена или доступ запрещен');
+      throw new Error("Заявка не найдена или доступ запрещен");
     }
 
     // Обновляем статус заявки на 'accepted'
     await db
       .update(friendRequests)
-      .set({ status: 'accepted' })
+      .set({ status: "accepted" })
       .where(eq(friendRequests.id, requestId));
 
-    return { message: 'Заявка принята!' };
+    return { message: "Заявка принята!" };
   }
 
   // Отклонить заявку в друзья
@@ -84,19 +92,22 @@ export default class FriendsService {
     const request = await db
       .select()
       .from(friendRequests)
-      .where(and(eq(friendRequests.id, requestId), eq(friendRequests.toUserId, currentUserId)))
+      .where(
+        and(
+          eq(friendRequests.id, requestId),
+          eq(friendRequests.toUserId, currentUserId),
+        ),
+      )
       .limit(1);
 
     if (!request || request.length === 0) {
-      throw new Error('Заявка не найдена или доступ запрещен');
+      throw new Error("Заявка не найдена или доступ запрещен");
     }
 
     // Удаляем заявку
-    await db
-      .delete(friendRequests)
-      .where(eq(friendRequests.id, requestId));
+    await db.delete(friendRequests).where(eq(friendRequests.id, requestId));
 
-    return { message: 'Заявка отклонена!' };
+    return { message: "Заявка отклонена!" };
   }
 
   // Получить список заявок в друзья для текущего пользователя
@@ -108,7 +119,12 @@ export default class FriendsService {
         createdAt: friendRequests.createdAt,
       })
       .from(friendRequests)
-      .where(and(eq(friendRequests.toUserId, userId), eq(friendRequests.status, 'pending')))
+      .where(
+        and(
+          eq(friendRequests.toUserId, userId),
+          eq(friendRequests.status, "pending"),
+        ),
+      )
       .orderBy(friendRequests.createdAt);
 
     // Добавляем информацию о пользователях
@@ -126,26 +142,27 @@ export default class FriendsService {
 
         return {
           id: req.id,
-          firstName: user[0]?.firstName || 'Неизвестный',
-          lastName: user[0]?.lastName || 'Пользователь',
+          fromUserId: req.fromUserId,
+          firstName: user[0]?.firstName || "Неизвестный",
+          lastName: user[0]?.lastName || "Пользователь",
           createdAt: req.createdAt,
         };
-      })
+      }),
     );
 
     return requestsWithUserInfo;
   }
 
-    // 🔥 НОВЫЙ МЕТОД: Удалить пользователя из друзей
+  // 🔥 НОВЫЙ МЕТОД: Удалить пользователя из друзей
   async removeFriend(userId1: number, userId2: number) {
     if (userId1 === userId2) {
-      throw new Error('Нельзя удалить себя из друзей');
+      throw new Error("Нельзя удалить себя из друзей");
     }
 
     // Проверяем, являются ли они вообще друзьями, чтобы не делать лишних запросов
     const areFriends = await this.areFriends(userId1, userId2);
     if (!areFriends) {
-      throw new Error('Пользователи не являются друзьями');
+      throw new Error("Пользователи не являются друзьями");
     }
 
     // Удаляем запись о дружбе (статус 'accepted' в любом направлении)
@@ -154,14 +171,20 @@ export default class FriendsService {
       .where(
         and(
           or(
-            and(eq(friendRequests.fromUserId, userId1), eq(friendRequests.toUserId, userId2)),
-            and(eq(friendRequests.fromUserId, userId2), eq(friendRequests.toUserId, userId1))
+            and(
+              eq(friendRequests.fromUserId, userId1),
+              eq(friendRequests.toUserId, userId2),
+            ),
+            and(
+              eq(friendRequests.fromUserId, userId2),
+              eq(friendRequests.toUserId, userId1),
+            ),
           ),
-          eq(friendRequests.status, 'accepted')
-        )
+          eq(friendRequests.status, "accepted"),
+        ),
       );
 
-    return { message: 'Пользователь успешно удален из друзей' };
+    return { message: "Пользователь успешно удален из друзей" };
   }
   // Получить список друзей
   async getFriends(userId: number) {
@@ -172,17 +195,19 @@ export default class FriendsService {
         toUserId: friendRequests.toUserId,
       })
       .from(friendRequests)
-      .where(and(
-        or(
-          eq(friendRequests.fromUserId, userId),
-          eq(friendRequests.toUserId, userId)
+      .where(
+        and(
+          or(
+            eq(friendRequests.fromUserId, userId),
+            eq(friendRequests.toUserId, userId),
+          ),
+          eq(friendRequests.status, "accepted"),
         ),
-        eq(friendRequests.status, 'accepted')
-      ));
+      );
 
     // Получаем ID друзей (если пользователь был инициатором, то друг - получатель и наоборот)
-    const friendIds = acceptedRequests.map(req => 
-      req.fromUserId === userId ? req.toUserId : req.fromUserId
+    const friendIds = acceptedRequests.map((req) =>
+      req.fromUserId === userId ? req.toUserId : req.fromUserId,
     );
 
     if (friendIds.length === 0) {
@@ -205,7 +230,10 @@ export default class FriendsService {
       })
       .from(users)
       .where(
-        sql`${users.id} = ANY(ARRAY[${sql.join(friendIds.map(id => sql`${id}`), sql`, `)}]::integer[])`
+        sql`${users.id} = ANY(ARRAY[${sql.join(
+          friendIds.map((id) => sql`${id}`),
+          sql`, `,
+        )}]::integer[])`,
       );
 
     return friendDetails;
@@ -221,11 +249,17 @@ export default class FriendsService {
       .where(
         and(
           or(
-            and(eq(friendRequests.fromUserId, userId1), eq(friendRequests.toUserId, userId2)),
-            and(eq(friendRequests.fromUserId, userId2), eq(friendRequests.toUserId, userId1))
+            and(
+              eq(friendRequests.fromUserId, userId1),
+              eq(friendRequests.toUserId, userId2),
+            ),
+            and(
+              eq(friendRequests.fromUserId, userId2),
+              eq(friendRequests.toUserId, userId1),
+            ),
           ),
-          eq(friendRequests.status, 'accepted')
-        )
+          eq(friendRequests.status, "accepted"),
+        ),
       )
       .limit(1);
 
@@ -241,8 +275,8 @@ export default class FriendsService {
         and(
           eq(friendRequests.fromUserId, fromUserId),
           eq(friendRequests.toUserId, toUserId),
-          eq(friendRequests.status, 'pending')
-        )
+          eq(friendRequests.status, "pending"),
+        ),
       )
       .limit(1);
 
@@ -254,7 +288,12 @@ export default class FriendsService {
     const [result] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(friendRequests)
-      .where(and(eq(friendRequests.toUserId, userId), eq(friendRequests.status, 'pending')));
+      .where(
+        and(
+          eq(friendRequests.toUserId, userId),
+          eq(friendRequests.status, "pending"),
+        ),
+      );
 
     return result.count;
   }

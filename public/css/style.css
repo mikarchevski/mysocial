@@ -492,15 +492,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .side-menu__link {
-  display: block;
+  display: flex;
   width: 100%;
-  padding: 8px 12px;
-  text-decoration: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
   color: #2a5885;
-  font-size: 14px;
-  border-radius: 4px;
-  box-sizing: border-box;
-  transition: background-color 0.2s ease;
+  text-decoration: none;
+  transition: background 0.2s;
 }
 .side-menu__link:hover {
   background-color: #f5f6f8;
@@ -545,6 +544,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 10px;
   margin-left: auto;
   flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .loading {
@@ -1478,9 +1478,6 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 6px;
   margin-bottom: 8px;
 }
-.friend-item:hover, .request-item:hover {
-  background: #f5f6f8;
-}
 .friend-item__avatar {
   width: 40px;
   height: 40px;
@@ -1577,9 +1574,6 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-}
-.request-item__actions .accept-btn:hover {
-  background: #3a6698;
 }
 .request-item__actions .decline-btn {
   background: #f0f2f5;
@@ -1751,6 +1745,78 @@ h1, h2, h3, h4, h5, h6 {
 }
 .profile-editor__button--save:hover {
   background-color: #2a5885;
+}
+
+/* Стили для заявок в друзья - минималистичный вариант */
+.request-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e7e8ec;
+  transition: background 0.2s;
+}
+.request-item:last-child {
+  border-bottom: none;
+}
+.request-item__avatar {
+  display: flex;
+  margin-right: 12px;
+}
+.request-item__avatar img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.request-item__info {
+  flex: 1;
+}
+.request-item__info .request-item__name {
+  color: #2a5885;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.request-item__info .request-item__name:hover {
+  text-decoration: underline;
+}
+.request-item__actions {
+  display: flex;
+  gap: 8px;
+}
+.request-item .accept-btn {
+  padding: 6px 16px;
+  background: #5181b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.request-item .accept-btn:hover {
+  background: #4a75a3;
+}
+.request-item .decline-btn {
+  padding: 6px 16px;
+  background: #f0f2f5;
+  color: #65686d;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.request-item .decline-btn:hover {
+  background: #e5ebf1;
+}
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #818c99;
+  font-size: 14px;
 }
 
 .wall {

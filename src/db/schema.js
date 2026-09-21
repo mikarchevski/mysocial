@@ -13,6 +13,8 @@ export const users = pgTable('users', {
     familyStatus: varchar('family_status', { length: 50 }),
     about: text('about'),
     publicKey: text('public_key'),
+    salt: text('salt'),
+    encryptedPrivateKey: text('encrypted_private_key'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 export const messages = pgTable('messages', {

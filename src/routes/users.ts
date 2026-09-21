@@ -52,18 +52,32 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
   // 1. ПОЛУЧИТЬ ДАННЫЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (Строгий маршрут)
   app.get(
     "/me",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
-      try {
-        const userId = (request.user as any).userId;
-        const user = await authService.getUserById(userId);
-        return { user };
-      } catch (error: any) {
-        console.error("Ошибка получения профиля:", error);
-        return reply.status(404).send({ error: error.message });
+      const userId = (request.user as any).userId;
+
+      // ✅ ЯВНО ЗАПРАШИВАЕМ НУЖНЫЕ ПОЛЯ
+      const user = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          email: users.email,
+          city: users.city,
+          dateOfBirth: users.dateOfBirth,
+          publicKey: users.publicKey,
+          salt: users.salt, // ✅ ДОБАВИТЬ ЭТО
+          encryptedPrivateKey: users.encryptedPrivateKey, // ✅ ДОБАВИТЬ ЭТО
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user[0]) {
+        return reply.status(404).send({ error: "Пользователь не найден" });
       }
+
+      return { user: user[0] };
     },
   );
 

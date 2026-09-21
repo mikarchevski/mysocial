@@ -25,7 +25,7 @@ export const users = pgTable("users", {
   about: text("about"),
   publicKey: text("public_key"),
   encryptedPrivateKey: text("encrypted_private_key"),
-  salt: jsonb("salt"),
+  salt: jsonb("salt").$type<number[]>(),
   gender: varchar("gender", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

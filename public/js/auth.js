@@ -182,18 +182,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (response.ok) {
                     // Если вход успешен, расшифровываем приватный ключ
-                    if (data.salt && data.encryptedPrivateKey) {
+                    if (data.user.salt && data.user.encryptedPrivateKey) { // Обратите внимание: данные могут быть в data.user
                         try {
-                            const saltBuffer = new Uint8Array(data.salt);
+                            // Безопасно преобразуем salt (может прийти как массив или как JSON-строка)
+                            let saltArray = data.user.salt;
+                            if (typeof data.user.salt === 'string') {
+                                saltArray = JSON.parse(data.user.salt);
+                            }
+
+                            const saltBuffer = new Uint8Array(saltArray);
                             const masterKey = await window.E2EECrypto.deriveMasterKey(password, saltBuffer);
 
                             window.sessionPrivateKey = await window.E2EECrypto.decryptPrivateKey(
-                                data.encryptedPrivateKey,
+                                data.user.encryptedPrivateKey,
                                 masterKey
                             );
                             console.log('✅ Приватный ключ успешно расшифрован и находится в оперативной памяти.');
+
+                            // Сохраняем в sessionStorage, чтобы пережить перезагрузку страницы (F5)
+                            const jwk = await window.crypto.subtle.exportKey("jwk", window.sessionPrivateKey);
+                            sessionStorage.setItem('temp_private_key_jwk', JSON.stringify(jwk));
+
                         } catch (cryptoErr) {
                             console.error('Ошибка расшифровки ключа:', cryptoErr);
+                            alert('Ошибка расшифровки ключа. Проверьте пароль.');
                         }
                     }
 
@@ -239,20 +251,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Всегда предотвращаем стандартную отправку
+            e.preventDefault();
 
             const errorEl = document.getElementById('regForm-registerError');
             errorEl.textContent = '';
             errorEl.style.display = 'none';
 
-            // 1. ПРОВЕРКА ВАЛИДНОСТИ (без браузерных подсказок благодаря novalidate)
+            // 1. ПРОВЕРКА ВАЛИДНОСТИ
             if (!registerForm.checkValidity()) {
-                // Находим все невалидные поля и подсвечиваем их красным
                 const invalidInputs = registerForm.querySelectorAll(':invalid');
                 invalidInputs.forEach(input => {
                     input.classList.add('regForm__input--error');
-
-                    // Опционально: показываем конкретную ошибку под полем
                     const fieldErrorId = input.id + 'Error';
                     const fieldErrorEl = document.getElementById(fieldErrorId);
                     if (fieldErrorEl) {
@@ -265,13 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 });
-
                 errorEl.textContent = 'Пожалуйста, проверьте выделенные поля';
                 errorEl.style.display = 'block';
-                return; // ОСТАНАВЛИВАЕМ отправку, если форма невалидна
+                return;
             }
 
-            // 2. Если форма валидна, очищаем все классы ошибок перед отправкой
+            // 2. Очистка ошибок
             registerForm.querySelectorAll('.regForm__input--error').forEach(input => {
                 input.classList.remove('regForm__input--error');
             });
@@ -279,12 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.textContent = '';
             });
 
-            // 3. Блокируем кнопку
+            // 3. Блокировка кнопки
             registerSubmitBtn.disabled = true;
             registerSubmitBtn.textContent = 'Генерация ключей и создание аккаунта...';
 
             try {
-                // 4. Собираем данные и криптография (ваш существующий код)
+                // 4. Криптография
                 const formData = new FormData(registerForm);
                 const data = Object.fromEntries(formData);
 
@@ -293,6 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { publicKey, privateKey } = await window.E2EECrypto.generateKeyPair();
                 const encryptedPrivateKey = await window.E2EECrypto.encryptPrivateKey(privateKey, masterKey);
                 const publicKeyBase64 = await window.E2EECrypto.exportPublicKey(publicKey);
+
+                // ✅ ИСПРАВЛЕНИЕ 1: Конвертируем salt в Base64 строку для БД (тип text)
+                const saltBase64 = btoa(String.fromCharCode(...salt));
 
                 const payload = {
                     firstName: data.firstName,
@@ -303,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     password: data.password,
                     publicKey: publicKeyBase64,
                     encryptedPrivateKey: encryptedPrivateKey,
-                    salt: Array.from(salt),
+                    salt: Array.from(salt), // ✅ Отправляем строку, а не массив
                 };
 
                 // 5. Отправка на сервер
@@ -317,6 +328,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok) {
+                    // ✅ ИСПРАВЛЕНИЕ 2: Сохраняем ключ в sessionStorage, чтобы не просить пароль сразу после регистрации
+                    const jwk = await window.crypto.subtle.exportKey("jwk", privateKey);
+                    sessionStorage.setItem('temp_private_key_jwk', JSON.stringify(jwk));
+                    window.sessionPrivateKey = privateKey;
+
                     window.location.href = '/';
                 } else {
                     errorEl.textContent = result.error || 'Ошибка регистрации';
@@ -333,13 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 4. УБИРАЕМ КРАСНУЮ РАМКУ И ОШИБКУ ПРИ НАЧАЛЕ ВВОДА
+        // 6. УБИРАЕМ КРАСНУЮ РАМКУ И ОШИБКУ ПРИ НАЧАЛЕ ВВОДА
         registerForm.querySelectorAll('.regForm__input').forEach(input => {
             input.addEventListener('input', () => {
                 if (input.classList.contains('regForm__input--error')) {
                     input.classList.remove('regForm__input--error');
-
-                    // Скрываем ошибку конкретного поля
                     const fieldErrorId = input.id + 'Error';
                     const fieldErrorEl = document.getElementById(fieldErrorId);
                     if (fieldErrorEl) {

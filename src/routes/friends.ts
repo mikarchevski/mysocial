@@ -1,6 +1,14 @@
 // src/routes/friends.ts
 import { FastifyPluginAsync } from "fastify";
+import { eq } from "drizzle-orm"; // ✅ Добавлено для поиска заявки
+import { db } from "../db/index.js"; // ✅ Добавлено для запроса к БД
+import { friendRequests, friends } from "../db/schema.js"; // ✅ Исправлена опечатка (убран /)
 import FriendsService from "../services/friends.service.js";
+import {
+  notifyUserOfFriendRequest,
+  notifyUserOfFriendRequestAccepted,
+  notifyUserOfFriendRequestDeclined,
+} from "../plugins/websocket.js";
 
 const friendsService = new FriendsService();
 
@@ -8,18 +16,15 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
   // Получить список друзей
   app.get(
     "/list",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const userId = (request.user as any).userId;
-      const searchQuery = (request.query as any).search || ""; // Добавляем параметр поиска
+      const searchQuery = (request.query as any).search || "";
 
-      const friends = await friendsService.getFriends(userId);
+      const friendsList = await friendsService.getFriends(userId);
 
-      // Если есть поисковый запрос, фильтруем друзей по имени
       if (searchQuery) {
-        const filteredFriends = friends.filter(
+        const filteredFriends = friendsList.filter(
           (friend) =>
             friend.firstName
               .toLowerCase()
@@ -32,16 +37,14 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
         return { friends: filteredFriends };
       }
 
-      return { friends };
+      return { friends: friendsList };
     },
   );
 
   // Получить список заявок в друзья
   app.get(
     "/requests",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const userId = (request.user as any).userId;
       const requests = await friendsService.getFriendRequests(userId);
@@ -52,9 +55,7 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
   // Получить количество заявок в друзья
   app.get(
     "/requests/count",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const userId = (request.user as any).userId;
       const count = await friendsService.getFriendRequestsCount(userId);
@@ -62,12 +63,10 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // Отправить заявку в друзья
+  // ✅ 1. ОТПРАВИТЬ ЗАЯВКУ В ДРУЗЬЯ
   app.post(
     "/:userId",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const currentUserId = (request.user as any).userId;
       const { userId } = request.params as { userId: string };
@@ -84,23 +83,22 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
-        const request = await friendsService.sendFriendRequest(
-          currentUserId,
-          targetUserId,
-        );
-        return { message: "Заявка в друзья отправлена!", request };
+        await friendsService.sendFriendRequest(currentUserId, targetUserId);
+
+        // ✅ УВЕДОМЛЯЕМ ПОЛУЧАТЕЛЯ ЗАЯВКИ
+        notifyUserOfFriendRequest(targetUserId, currentUserId);
+
+        return { message: "Заявка в друзья отправлена!" };
       } catch (error: any) {
         return reply.status(400).send({ error: error.message });
       }
     },
   );
 
-  // Принять заявку в друзья
+  // ✅ 2. ПРИНЯТЬ ЗАЯВКУ В ДРУЗЬЯ
   app.post(
     "/accept/:requestId",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const currentUserId = (request.user as any).userId;
       const { requestId } = request.params as { requestId: string };
@@ -111,10 +109,27 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
+        // 1. Находим заявку, чтобы узнать, кого уведомить (кто её отправил)
+        const [reqData] = await db
+          .select()
+          .from(friendRequests)
+          .where(eq(friendRequests.id, reqId));
+
+        if (!reqData || reqData.toUserId !== currentUserId) {
+          return reply
+            .status(404)
+            .send({ error: "Заявка не найдена или уже обработана" });
+        }
+
+        // 2. Принимаем заявку через сервис
         const result = await friendsService.acceptFriendRequest(
           reqId,
           currentUserId,
         );
+
+        // 3. ✅ УВЕДОМЛЯЕМ ОТПРАВИТЕЛЯ ЗАЯВКИ
+        notifyUserOfFriendRequestAccepted(reqData.fromUserId, currentUserId);
+
         return result;
       } catch (error: any) {
         return reply.status(400).send({ error: error.message });
@@ -122,12 +137,10 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  // Отклонить заявку в друзья
+  // ✅ 3. ОТКЛОНИТЬ ЗАЯВКУ В ДРУЗЬЯ
   app.post(
     "/decline/:requestId",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const currentUserId = (request.user as any).userId;
       const { requestId } = request.params as { requestId: string };
@@ -138,10 +151,27 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
+        // 1. Находим заявку, чтобы узнать, кого уведомить
+        const [reqData] = await db
+          .select()
+          .from(friendRequests)
+          .where(eq(friendRequests.id, reqId));
+
+        if (!reqData || reqData.toUserId !== currentUserId) {
+          return reply
+            .status(404)
+            .send({ error: "Заявка не найдена или уже обработана" });
+        }
+
+        // 2. Отклоняем заявку через сервис
         const result = await friendsService.declineFriendRequest(
           reqId,
           currentUserId,
         );
+
+        // 3. ✅ УВЕДОМЛЯЕМ ОТПРАВИТЕЛЯ ЗАЯВКИ
+        notifyUserOfFriendRequestDeclined(reqData.fromUserId, currentUserId);
+
         return result;
       } catch (error: any) {
         return reply.status(400).send({ error: error.message });
@@ -152,9 +182,7 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
   // Получить статус дружбы с пользователем
   app.get(
     "/status/:userId",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const currentUserId = (request.user as any).userId;
       const { userId } = request.params as { userId: string };
@@ -185,9 +213,7 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
   // Удалить из друзей
   app.delete(
     "/:userId",
-    {
-      preValidation: [(app as any).authenticate],
-    },
+    { preValidation: [(app as any).authenticate] },
     async (request, reply) => {
       const currentUserId = (request.user as any).userId;
       const { userId } = request.params as { userId: string };
@@ -210,6 +236,10 @@ export const friendsRoutes: FastifyPluginAsync = async (app) => {
           currentUserId,
           targetUserId,
         );
+
+        // (Опционально) Можно добавить уведомление об удалении из друзей:
+        // notifyUserOfFriendRemoved(targetUserId, currentUserId);
+
         return result;
       } catch (error: any) {
         console.error("Ошибка при удалении из друзей:", error);
